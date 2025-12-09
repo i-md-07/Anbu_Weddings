@@ -101,7 +101,7 @@ export default function App() {
           <>
             <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
             <main>
-              <HeroSection />
+              <HeroSection onNavigate={handleNavigate} />
               <TrustSection />
               <FeaturedProfiles />
               <HowItWorks />
@@ -146,7 +146,7 @@ export default function App() {
           <>
             <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
             <main>
-              <HeroSection />
+              <HeroSection onNavigate={handleNavigate} />
               <TrustSection />
               <FeaturedProfiles />
               <HowItWorks />
