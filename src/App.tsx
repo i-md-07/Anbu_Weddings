@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { HeroSection } from "./components/HeroSection";
 import { TrustSection } from "./components/TrustSection";
@@ -15,164 +16,141 @@ import { ProfileViewPage } from "./components/ProfileViewPage";
 import { DashboardPage } from "./components/DashboardPage";
 import { PricingPage } from "./components/PricingPage";
 
+// Wrapper to extract profileId from URL params
+const ProfileRouteWrapper = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+  const { id } = useParams();
+  const profileId = id ? parseInt(id) : null;
+  return <ProfileViewPage profileId={profileId} onNavigate={onNavigate} />;
+};
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<string>("home");
-  const [direction, setDirection] = useState(0);
-  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       setIsLoggedIn(true);
-      // If we are essentially at "root", redirect to dashboard if logged in
-      // Since SPA routing resets to "home" on reload, we force dashboard here
-      setCurrentPage('dashboard');
+      if (location.pathname === '/') {
+        navigate('/dashboard');
+      }
     }
   }, []);
 
   const handleNavigate = (page: string) => {
-    // Determine transition direction
-    if (currentPage === "login" && page === "signup") {
-      setDirection(-1); // Reverse: Slide in from left (Left to Right transition)
-    } else if (currentPage === "signup" && page === "login") {
-      setDirection(1); // Forward: Slide in from right
-    } else if ((page === "login" || page === "signup") && currentPage !== "login" && currentPage !== "signup") {
-      setDirection(1); // Entering auth: Slide in from right
-    } else if ((currentPage === "login" || currentPage === "signup") && page !== "login" && page !== "signup") {
-      setDirection(-1); // Leaving auth: Slide out to right (new page from left)
-    } else {
-      setDirection(0); // Default: Fade
+    // Map legacy string navigation to routes
+    switch (page) {
+      case 'home': navigate('/'); break;
+      case 'login': navigate('/login'); break;
+      case 'signup': navigate('/signup'); break;
+      case 'browse': navigate('/browse'); break;
+      case 'dashboard': navigate('/dashboard'); break;
+      case 'pricing': navigate('/pricing'); break;
+      case 'profile': navigate('/profile'); break; // Fallback, usually profile select navigates to specific ID
+      default: navigate('/');
     }
-
-    setCurrentPage(page);
     window.scrollTo(0, 0);
   };
 
   const handleProfileSelect = (id: number) => {
-    setSelectedProfileId(id);
-    handleNavigate('profile');
+    navigate(`/profile/${id}`);
   };
 
   const handleLogin = () => {
     setIsLoggedIn(true);
-    handleNavigate('dashboard');
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    handleNavigate('home');
+    navigate('/');
   };
 
   const variants = {
-    initial: (direction: number) => {
-      if (direction === 0) return { opacity: 0 };
-      return {
-        x: direction > 0 ? "100%" : "-100%",
-        opacity: 0
-      };
-    },
+    initial: { opacity: 0, x: 20 },
     animate: {
-      x: 0,
       opacity: 1,
+      x: 0,
       transition: {
         duration: 0.5,
-        ease: [0.22, 1, 0.36, 1] // Custom cubic bezier for smooth effect
+        ease: "easeInOut" as const
       }
     },
-    exit: (direction: number) => {
-      if (direction === 0) return { opacity: 0 };
-      return {
-        x: direction < 0 ? "100%" : "-100%",
-        opacity: 0,
-        transition: {
-          duration: 0.5,
-          ease: [0.22, 1, 0.36, 1]
-        }
-      };
-    }
-  };
-
-  // Simple page routing
-  const renderPage = () => {
-    switch (currentPage) {
-      case "home":
-        return (
-          <>
-            <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-            <main>
-              <HeroSection onNavigate={handleNavigate} />
-              <TrustSection />
-              <FeaturedProfiles />
-              <HowItWorks />
-              <SuccessStory />
-              <CTASection />
-            </main>
-            <Footer onNavigate={handleNavigate} />
-          </>
-        );
-      case "login":
-        return <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />;
-      case "signup":
-        return <SignupPage onNavigate={handleNavigate} />;
-      case "browse":
-        return (
-          <>
-            <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-            <BrowseProfilesPage onProfileSelect={handleProfileSelect} />
-            <Footer onNavigate={handleNavigate} />
-          </>
-        );
-      case "profile":
-        return (
-          <>
-            <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-            <ProfileViewPage profileId={selectedProfileId} onNavigate={handleNavigate} />
-            <Footer onNavigate={handleNavigate} />
-          </>
-        );
-      case "dashboard":
-        return <DashboardPage onNavigate={handleNavigate} onLogout={handleLogout} />;
-      case "pricing":
-        return (
-          <>
-            <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-            <PricingPage />
-            <Footer onNavigate={handleNavigate} />
-          </>
-        );
-      default:
-        return (
-          <>
-            <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-            <main>
-              <HeroSection onNavigate={handleNavigate} />
-              <TrustSection />
-              <FeaturedProfiles />
-              <HowItWorks />
-              <SuccessStory />
-              <CTASection />
-            </main>
-            <Footer onNavigate={handleNavigate} />
-          </>
-        );
+    exit: {
+      opacity: 0,
+      x: -20,
+      transition: {
+        duration: 0.5,
+        ease: "easeInOut" as const
+      }
     }
   };
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAFAFA]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <AnimatePresence mode="wait" custom={direction} initial={false}>
-        <motion.div
-          key={currentPage}
-          custom={direction}
-          variants={variants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          className="w-full min-h-screen"
-        >
-          {renderPage()}
-        </motion.div>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+              <main>
+                <HeroSection onNavigate={handleNavigate} />
+                <TrustSection />
+                <FeaturedProfiles />
+                <HowItWorks />
+                <SuccessStory />
+                <CTASection />
+              </main>
+              <Footer onNavigate={handleNavigate} />
+            </motion.div>
+          } />
+
+          <Route path="/login" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />
+            </motion.div>
+          } />
+
+          <Route path="/signup" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <SignupPage onNavigate={handleNavigate} />
+            </motion.div>
+          } />
+
+          <Route path="/browse" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+              <BrowseProfilesPage onProfileSelect={handleProfileSelect} />
+              <Footer onNavigate={handleNavigate} />
+            </motion.div>
+          } />
+
+          <Route path="/profile/:id?" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+              <ProfileRouteWrapper onNavigate={handleNavigate} />
+              <Footer onNavigate={handleNavigate} />
+            </motion.div>
+          } />
+
+          <Route path="/dashboard" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              {/* Dashboard often has its own layout, but assuming full page for now based on previous code */}
+              <DashboardPage onNavigate={handleNavigate} onLogout={handleLogout} />
+            </motion.div>
+          } />
+
+          <Route path="/pricing" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+              <PricingPage />
+              <Footer onNavigate={handleNavigate} />
+            </motion.div>
+          } />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </AnimatePresence>
     </div>
   );
