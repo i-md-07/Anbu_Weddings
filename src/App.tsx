@@ -91,7 +91,7 @@ export default function App() {
             <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
               <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
               <main>
-                <HeroSection onNavigate={handleNavigate} />
+                <HeroSection onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />
               </main>
             </motion.div>
           } />

@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { registerUser } from "../services/api";
-import logo from "../assets/logo.jpg";
+import logo from "../assets/logo.png";
+
+// ... (skipping lines for brevity in tool call, but I need to target the import and the usage)
+// Wait, replace_file_content is for contiguous block.
+// The import is at line 14. The usage is at line 125.
+// I should use multi_replace.
 
 interface SignupPageProps {
   onNavigate?: (page: string) => void;
@@ -122,7 +127,7 @@ export function SignupPage({ onNavigate }: SignupPageProps) {
           {/* Logo */}
           <div className="mb-8 cursor-pointer text-center" onClick={(e) => handleNavigate(e, 'home')}>
             <div className="flex justify-center mb-4">
-              <img src={logo} alt="VOWS Logo" className="h-28 w-28 object-contain" />
+              <img src={logo} alt="VOWS Logo" className="h-16 w-auto object-contain" />
             </div>
             <p style={{ fontFamily: "'Inter', sans-serif", color: '#717182' }}>Create your account to start finding your perfect match.</p>
           </div>

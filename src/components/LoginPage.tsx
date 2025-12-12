@@ -3,7 +3,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { motion } from "motion/react";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Phone, Lock, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { loginUser } from "../services/api";
 import logo from "../assets/logo.jpg";
@@ -14,7 +14,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -28,7 +28,16 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await loginUser({ email, password });
+      // MOCK LOGIN FOR TESTING
+      if (mobile === "9999999999" && password === "123456") {
+        localStorage.setItem('token', 'mock-test-token');
+        localStorage.setItem('user', JSON.stringify({ name: 'Test User', mobile: '9999999999' }));
+        if (onLogin) onLogin();
+        else if (onNavigate) onNavigate('dashboard');
+        return;
+      }
+
+      const response = await loginUser({ mobile, password });
       localStorage.setItem('token', response.token);
 
       if (onLogin) {
@@ -68,19 +77,19 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
 
           {/* Form */}
           <form className="space-y-6" onSubmit={handleLogin}>
-            {/* Email */}
+            {/* Mobile Number */}
             <div className="space-y-2">
-              <Label htmlFor="email" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
-                Email Address
+              <Label htmlFor="mobile" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
+                Mobile Number
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#717182]" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="mobile"
+                  type="tel"
+                  placeholder="Enter mobile number"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
                   className="pl-11 py-6 border-[#C5A059]/30 focus:border-[#8E001C]"
                   style={{ fontFamily: "'Inter', sans-serif" }}
                 />

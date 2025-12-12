@@ -246,26 +246,27 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
             >
-              <Card className="p-6 bg-white border-[#C5A059]/20 shadow-md hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between">
+              <Card className="p-6 bg-white border-0 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group h-full">
+                <div className={`absolute top-0 right-0 w-24 h-24 bg-[${stat.color}]/10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500`}></div>
+                <div className="flex items-center justify-between relative z-10">
                   <div>
                     <p
-                      className="text-sm text-[#717182] mb-1"
+                      className="text-sm font-medium text-[#717182] mb-2 uppercase tracking-wide"
                       style={{ fontFamily: "'Inter', sans-serif" }}
                     >
                       {stat.label}
                     </p>
                     <p
-                      style={{ fontFamily: "'Playfair Display', serif", fontSize: '32px', fontWeight: 700, color: stat.color }}
+                      style={{ fontFamily: "'Playfair Display', serif", fontSize: '42px', fontWeight: 700, color: stat.color, lineHeight: 1 }}
                     >
                       {stat.value}
                     </p>
                   </div>
                   <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center"
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm group-hover:rotate-12 transition-transform duration-300"
                     style={{ backgroundColor: `${stat.color}15` }}
                   >
-                    <stat.icon className="w-7 h-7" style={{ color: stat.color }} />
+                    <stat.icon className="w-8 h-8" style={{ color: stat.color }} />
                   </div>
                 </div>
               </Card>
@@ -414,41 +415,58 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Card className="p-6 bg-white border-[#C5A059]/20 shadow-md">
-                <h2
-                  className="mb-6"
-                  style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600, color: '#1A1A1A' }}
-                >
-                  Recent Activity
-                </h2>
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={activity.avatar} alt={activity.name} />
-                        <AvatarFallback>U</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p
-                          className="text-sm"
-                          style={{ fontFamily: "'Inter', sans-serif", color: '#1A1A1A' }}
+              {/* New Related Matches (Replacing Recent Activity) */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Card className="p-6 bg-white border-[#C5A059]/20 shadow-md">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2
+                      style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600, color: '#1A1A1A' }}
+                    >
+                      New Related Matches
+                    </h2>
+                  </div>
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#F9F9F9] cursor-pointer transition-colors group">
+                        <div className="relative">
+                          <img
+                            src={`https://images.unsplash.com/photo-${i === 1 ? '1605648916319-cf082f7524a1' : i === 2 ? '1710425804836-a1de39056b40' : '1653671832574-029b950a5749'}?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=100`}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                            alt="Match"
+                          />
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-[#1A1A1A] text-sm" style={{ fontFamily: "'Playfair Display', serif" }}>
+                            {i === 1 ? 'Sanya M.' : i === 2 ? 'Priya K.' : 'Riya S.'}
+                          </p>
+                          <p className="text-xs text-[#717182]" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            Matches your preferences
+                          </p>
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-[#8E001C] opacity-0 group-hover:opacity-100 transition-opacity bg-[#8E001C]/5"
                         >
-                          <span className="font-semibold">{activity.name}</span>{' '}
-                          {activity.type === 'interest_received' && 'sent you an interest'}
-                          {activity.type === 'profile_view' && 'viewed your profile'}
-                          {activity.type === 'message' && 'sent you a message'}
-                        </p>
-                        <p
-                          className="text-xs text-[#717182]"
-                          style={{ fontFamily: "'Inter', sans-serif" }}
-                        >
-                          {activity.time}
-                        </p>
+                          <Heart className="w-4 h-4" />
+                        </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                    ))}
+                    <Button
+                      variant="link"
+                      className="w-full text-[#8E001C] text-sm font-semibold"
+                      onClick={() => handleNavigate('browse')}
+                    >
+                      View All Matches
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
             </motion.div>
 
             {/* Profile Tips */}
