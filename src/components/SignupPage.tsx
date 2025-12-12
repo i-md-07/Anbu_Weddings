@@ -5,12 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Checkbox } from "./ui/checkbox";
 import { motion } from "motion/react";
 import {
-  Mail, Lock, User, ArrowRight, Heart, Calendar,
+  Mail, Lock, User, ArrowRight, Calendar,
   MapPin, Briefcase, FileText, Upload, Users, Banknote,
   ScrollText, Globe
 } from "lucide-react";
 import { useState } from "react";
 import { registerUser } from "../services/api";
+import logo from "../assets/logo.jpg";
 
 interface SignupPageProps {
   onNavigate?: (page: string) => void;
@@ -120,10 +121,9 @@ export function SignupPage({ onNavigate }: SignupPageProps) {
         <div className="max-w-3xl mx-auto w-full z-10">
           {/* Logo */}
           <div className="mb-8 cursor-pointer text-center" onClick={(e) => handleNavigate(e, 'home')}>
-            <h1 className="flex items-center justify-center gap-2 mb-2" style={{ fontFamily: "'Playfair Display', serif", fontSize: '36px', fontWeight: 700, color: '#8E001C' }}>
-              <Heart className="w-8 h-8 fill-[#8E001C]" />
-              VOWS
-            </h1>
+            <div className="flex justify-center mb-4">
+              <img src={logo} alt="VOWS Logo" className="h-28 w-28 object-contain" />
+            </div>
             <p style={{ fontFamily: "'Inter', sans-serif", color: '#717182' }}>Create your account to start finding your perfect match.</p>
           </div>
 

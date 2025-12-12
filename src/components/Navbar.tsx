@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { Heart, User, LogOut, LayoutDashboard } from "lucide-react";
+import { User, LogOut, LayoutDashboard } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import logo from "../assets/logo.jpg";
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -59,10 +60,7 @@ export function Navbar({ onNavigate, isLoggedIn = false, onLogout }: NavbarProps
           onClick={() => onNavigate("home")}
           className="flex-shrink-0 flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <Heart className="w-6 h-6 fill-[#8E001C] text-[#8E001C]" />
-          <h1 className="text-2xl md:text-3xl tracking-tight" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#8E001C' }}>
-            VOWS
-          </h1>
+          <img src={logo} alt="VOWS Logo" className="h-20 w-auto object-contain" />
         </button>
 
         {/* Desktop Navigation Links */}

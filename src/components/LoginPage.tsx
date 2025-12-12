@@ -3,9 +3,10 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { motion } from "motion/react";
-import { Mail, Lock, ArrowRight, Heart } from "lucide-react";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { loginUser } from "../services/api";
+import logo from "../assets/logo.jpg";
 
 interface LoginPageProps {
   onNavigate?: (page: string) => void;
@@ -56,14 +57,10 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
           className="w-full max-w-md relative z-10"
         >
           {/* Logo */}
-          <div className="mb-8 cursor-pointer" onClick={(e) => handleNavigate(e, 'home')}>
-            <h1
-              className="flex items-center gap-2 mb-2"
-              style={{ fontFamily: "'Playfair Display', serif", fontSize: '36px', fontWeight: 700, color: '#8E001C' }}
-            >
-              <Heart className="w-8 h-8 fill-[#8E001C]" />
-              VOWS
-            </h1>
+          <div className="mb-8 cursor-pointer text-center" onClick={(e) => handleNavigate(e, 'home')}>
+            <div className="flex justify-center mb-4">
+              <img src={logo} alt="VOWS Logo" className="h-32 w-32 object-contain" />
+            </div>
             <p style={{ fontFamily: "'Inter', sans-serif", color: '#717182' }}>
               Welcome back! Sign in to continue your journey.
             </p>
@@ -115,7 +112,7 @@ export function LoginPage({ onNavigate, onLogin }: LoginPageProps) {
                 <Checkbox
                   id="remember"
                   checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  onCheckedChange={(checked: boolean | string) => setRememberMe(checked === true)}
                 />
                 <label
                   htmlFor="remember"

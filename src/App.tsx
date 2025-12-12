@@ -3,11 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { HeroSection } from "./components/HeroSection";
-import { TrustSection } from "./components/TrustSection";
-import { FeaturedProfiles } from "./components/FeaturedProfiles";
-import { HowItWorks } from "./components/HowItWorks";
-import { SuccessStory } from "./components/SuccessStory";
-import { CTASection } from "./components/CTASection";
+
 import { Footer } from "./components/Footer";
 import { LoginPage } from "./components/LoginPage";
 import { SignupPage } from "./components/SignupPage";
@@ -96,13 +92,7 @@ export default function App() {
               <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
               <main>
                 <HeroSection onNavigate={handleNavigate} />
-                <TrustSection />
-                <FeaturedProfiles />
-                <HowItWorks />
-                <SuccessStory />
-                <CTASection />
               </main>
-              <Footer onNavigate={handleNavigate} />
             </motion.div>
           } />
 

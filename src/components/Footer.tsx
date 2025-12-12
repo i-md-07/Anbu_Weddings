@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
+import logo from "../assets/logo.jpg";
 
 interface FooterProps {
   onNavigate: (page: string) => void;
@@ -40,13 +41,10 @@ export function Footer({ onNavigate }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Brand Column */}
           <div>
-            <h3 
-              className="mb-4 tracking-tight"
-              style={{ fontFamily: "'Playfair Display', serif", fontSize: '32px', fontWeight: 700, color: '#8E001C' }}
-            >
-              VOWS
-            </h3>
-            <p 
+            <div className="flex items-center gap-2 mb-6">
+              <img src={logo} alt="VOWS Logo" className="h-24 w-24 object-contain" />
+            </div>
+            <p
               className="text-[#717182] mb-6 leading-relaxed"
               style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px' }}
             >
@@ -68,7 +66,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
           {/* Company Links */}
           <div>
-            <h4 
+            <h4
               className="mb-4 text-[#1A1A1A]"
               style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px' }}
             >
@@ -91,7 +89,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
           {/* Help Links */}
           <div>
-            <h4 
+            <h4
               className="mb-4 text-[#1A1A1A]"
               style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px' }}
             >
@@ -114,7 +112,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
           {/* Legal Links */}
           <div>
-            <h4 
+            <h4
               className="mb-4 text-[#1A1A1A]"
               style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px' }}
             >
@@ -139,28 +137,28 @@ export function Footer({ onNavigate }: FooterProps) {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-gray-200">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p 
+            <p
               className="text-[#717182] text-center md:text-left"
               style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px' }}
             >
               © 2025 VOWS Inc. All rights reserved. Made with ❤️ in India.
             </p>
             <div className="flex gap-6">
-              <button 
+              <button
                 onClick={() => onNavigate("home")}
                 className="text-[#717182] hover:text-[#8E001C] transition-colors"
                 style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px' }}
               >
                 Privacy
               </button>
-              <button 
+              <button
                 onClick={() => onNavigate("home")}
                 className="text-[#717182] hover:text-[#8E001C] transition-colors"
                 style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px' }}
               >
                 Terms
               </button>
-              <button 
+              <button
                 onClick={() => onNavigate("home")}
                 className="text-[#717182] hover:text-[#8E001C] transition-colors"
                 style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px' }}
