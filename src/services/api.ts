@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api/auth';
-
 const api = axios.create({
     baseURL: API_URL,
 });
@@ -34,6 +33,104 @@ export const fetchCurrentUser = async (token: string) => {
             headers: {
                 Authorization: `Bearer ${token}`
             }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchReligions = async () => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/masters/religions');
+        return response.data.religions;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchCastes = async (religionId: number) => {
+    try {
+        const response = await axios.get(`http://localhost:5000/api/masters/religions/${religionId}/castes`);
+        return response.data.castes;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchSubcastes = async (casteId: number) => {
+    try {
+        const response = await axios.get(`http://localhost:5000/api/masters/castes/${casteId}/subcastes`);
+        return response.data.subcastes;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const processPayment = async (amount: number, token: string) => {
+    try {
+        const response = await api.post('/payment/process', { amount }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const approveUser = async (userId: number, token: string) => {
+    try {
+        const response = await api.patch(`http://localhost:5000/api/admin/users/${userId}/approve`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchAdminUserById = async (userId: number, token: string) => {
+    try {
+        const response = await axios.get(`http://localhost:5000/api/admin/users/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const updateAdminUser = async (userId: number, data: any, token: string) => {
+    try {
+        const response = await axios.put(`http://localhost:5000/api/admin/users/${userId}`, data, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchPaginatedUsers = async (params: any, token: string) => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/admin/users', {
+            headers: { Authorization: `Bearer ${token}` },
+            params
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchPaginatedPayments = async (params: any, token: string) => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/admin/payments', {
+            headers: { Authorization: `Bearer ${token}` },
+            params
         });
         return response.data;
     } catch (error) {

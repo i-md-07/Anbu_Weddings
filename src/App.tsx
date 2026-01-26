@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { HeroSection } from "./components/HeroSection";
+import { Toaster } from "./components/ui/sonner";
 
 import { Footer } from "./components/Footer";
 import { LoginPage } from "./components/LoginPage";
@@ -10,7 +11,10 @@ import { SignupPage } from "./components/SignupPage";
 import { BrowseProfilesPage } from "./components/BrowseProfilesPage";
 import { ProfileViewPage } from "./components/ProfileViewPage";
 import { DashboardPage } from "./components/DashboardPage";
+import { AdminDashboard } from "./components/AdminDashboard";
 import { PricingPage } from "./components/PricingPage";
+import { PaymentPage } from "./components/PaymentPage";
+import { AdminUserDetailView } from "@/components/admin-dashboard/AdminUserDetailView";
 
 // Wrapper to extract profileId from URL params
 const ProfileRouteWrapper = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
@@ -42,6 +46,8 @@ export default function App() {
       case 'signup': navigate('/signup'); break;
       case 'browse': navigate('/browse'); break;
       case 'dashboard': navigate('/dashboard'); break;
+      case 'admin': navigate('/admin'); break;
+      case 'payment': navigate('/payment'); break;
       case 'pricing': navigate('/pricing'); break;
       case 'profile': navigate('/profile'); break; // Fallback, usually profile select navigates to specific ID
       default: navigate('/');
@@ -91,7 +97,7 @@ export default function App() {
             <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
               <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
               <main>
-                <HeroSection onNavigate={handleNavigate} isLoggedIn={isLoggedIn} />
+                <HeroSection onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogin={handleLogin} />
               </main>
             </motion.div>
           } />
@@ -131,6 +137,18 @@ export default function App() {
             </motion.div>
           } />
 
+          <Route path="/admin/users/:id" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <AdminUserDetailView />
+            </motion.div>
+          } />
+
+          <Route path="/admin" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <AdminDashboard />
+            </motion.div>
+          } />
+
           <Route path="/pricing" element={
             <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
               <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
@@ -139,9 +157,17 @@ export default function App() {
             </motion.div>
           } />
 
+          <Route path="/payment" element={
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+              <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+              <PaymentPage onNavigate={handleNavigate} />
+            </motion.div>
+          } />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
+      <Toaster position="top-right" />
     </div>
   );
 }

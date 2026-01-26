@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { User, LogOut, LayoutDashboard } from "lucide-react";
+import { User, LogOut, LayoutDashboard, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo.svg";
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -33,8 +33,7 @@ export function Navbar({ onNavigate, isLoggedIn = false, onLogout }: NavbarProps
             const data = await fetchCurrentUser(token);
             setUser({
               name: data.username,
-              email: data.email,
-              avatar: data.photo ? `http://localhost:5000/${data.photo}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
+              email: data.email,              userType: data.UserType || 0,              avatar: data.photo ? `http://localhost:5000/${data.photo}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
               initials: data.username ? data.username.substring(0, 2).toUpperCase() : "US"
             });
           } catch (error) {
@@ -54,7 +53,7 @@ export function Navbar({ onNavigate, isLoggedIn = false, onLogout }: NavbarProps
   };
   return (
     <nav className="sticky top-0 left-0 right-0 z-50 bg-white/50 backdrop-blur-md border-b border-white/20 shadow-sm transition-all duration-300">
-      <div className={`max-w-[1440px] mx-auto px-4 md:px-8 py-2 flex items-center relative ${!isLoggedIn ? 'justify-center' : 'justify-between'}`}>
+      <div className={`max-w-[1440px] mx-auto px-3 md:px-8 py-1 flex items-center relative ${!isLoggedIn ? 'justify-start' : 'justify-between'}`}>
         {/* Logo */}
         <button
           onClick={() => onNavigate("home")}
@@ -63,7 +62,7 @@ export function Navbar({ onNavigate, isLoggedIn = false, onLogout }: NavbarProps
           <img
             src={logo}
             alt="VOWS Logo"
-            style={{ height: '90px', width: 'auto', maxWidth: '240px' }}
+            style={{ height: '70px', width: 'auto', maxWidth: '240px' }}
             className="object-contain drop-shadow-xl"
           />
         </button>
@@ -119,8 +118,12 @@ export function Navbar({ onNavigate, isLoggedIn = false, onLogout }: NavbarProps
                       <p className="text-xs leading-none text-muted-foreground">{displayUser.email}</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onNavigate("dashboard")}>
+                  <DropdownMenuSeparator />                  {displayUser.userType === 1 && (
+                    <DropdownMenuItem onClick={() => onNavigate("admin") }>
+                      <Users className="mr-2 h-4 w-4" />
+                      Admin
+                    </DropdownMenuItem>
+                  )}                  <DropdownMenuItem onClick={() => onNavigate("dashboard")}>
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     Dashboard
                   </DropdownMenuItem>

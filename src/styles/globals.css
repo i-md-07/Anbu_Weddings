@@ -4,13 +4,13 @@
 
 :root {
   --font-size: 16px;
-  
+
   /* VOWS Custom Color Palette */
   --royal-maroon: #8E001C;
   --muted-gold: #C5A059;
   --off-white: #F9F9F9;
   --dark-charcoal: #1A1A1A;
-  
+
   /* Existing Tokens Updated */
   --background: #F9F9F9;
   --foreground: #1A1A1A;
@@ -139,7 +139,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   html {
     scroll-behavior: smooth;
   }
@@ -202,4 +202,8 @@
 
 html {
   font-size: var(--font-size);
+}
+
+.success {
+  background-color: green !important;
 }
