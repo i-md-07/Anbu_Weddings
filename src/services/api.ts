@@ -137,3 +137,93 @@ export const fetchPaginatedPayments = async (params: any, token: string) => {
         throw error;
     }
 };
+
+// User Dashboard APIs
+export const fetchDashboardStats = async (token: string) => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/user/dashboard-stats', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchRecommendations = async (token: string) => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/user/recommendations', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchShortlists = async (token: string) => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/user/shortlists', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const toggleShortlist = async (profileId: number, token: string) => {
+    try {
+        const response = await axios.post('http://localhost:5000/api/user/shortlist', { profileId }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const sendInterest = async (receiverId: number, token: string) => {
+    try {
+        const response = await axios.post('http://localhost:5000/api/user/interest', { receiverId }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const recordProfileView = async (profileId: number, token: string) => {
+    try {
+        const response = await axios.post('http://localhost:5000/api/user/record-view', { profileId }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchRecentActivity = async (token: string) => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/user/recent-activity', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const fetchBrowseProfiles = async (params: any, token: string) => {
+    try {
+        const response = await axios.get('http://localhost:5000/api/user/browse', {
+            headers: { Authorization: `Bearer ${token}` },
+            params
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

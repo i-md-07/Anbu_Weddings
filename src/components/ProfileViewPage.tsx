@@ -4,7 +4,6 @@ import {
   Heart,
   Star,
   Share2,
-  MessageCircle,
   MapPin,
   Briefcase,
   Moon,
@@ -17,7 +16,8 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 import { profiles } from "../data/mockData";
-import { fetchCurrentUser } from "../services/api";
+import { fetchCurrentUser, recordProfileView, sendInterest, toggleShortlist } from "../services/api";
+import { toast } from "sonner";
 
 interface ProfileViewPageProps {
   profileId?: number | null;
@@ -84,8 +84,9 @@ export function ProfileViewPage({ profileId, onNavigate }: ProfileViewPageProps)
   useEffect(() => {
     const loadProfile = async () => {
       setLoading(true);
+      const token = localStorage.getItem('token');
+
       if (isCurrentUser) {
-        const token = localStorage.getItem('token');
         if (token) {
           try {
             const userData = await fetchCurrentUser(token);
@@ -138,6 +139,15 @@ export function ProfileViewPage({ profileId, onNavigate }: ProfileViewPageProps)
           setProfileData({ ...mockExtendedProfile, ...found, matchScore: found.matchScore || 85 });
         } else {
           setProfileData(mockExtendedProfile);
+        }
+
+        // Record a profile view if viewing another user's profile
+        if (token && profileId) {
+          try {
+            await recordProfileView(profileId, token);
+          } catch (err) {
+            console.error("Failed to record view", err);
+          }
         }
       }
       setLoading(false);
@@ -264,11 +274,36 @@ export function ProfileViewPage({ profileId, onNavigate }: ProfileViewPageProps)
           {/* Action Buttons (Only for Other Profiles) */}
           {!isCurrentUser && (
             <div className="flex gap-3 pb-2 w-full md:w-auto justify-center md:justify-end">
-              <Button className="h-12 px-8 bg-[#8E001C] hover:bg-[#750017] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all">
+              <Button
+                className="h-12 px-8 bg-[#8E001C] hover:bg-[#750017] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"
+                onClick={async () => {
+                  const token = localStorage.getItem('token');
+                  if (!token) return toast.error("Please login to connect");
+                  try {
+                    await sendInterest(profileId!, token);
+                    toast.success(`Interest sent to ${profile.name}!`);
+                  } catch (err) {
+                    toast.error("Failed to send interest");
+                  }
+                }}
+              >
                 <Heart className="w-4 h-4 mr-2" /> Connect
               </Button>
-              <Button variant="outline" className="h-12 w-12 rounded-full border-gray-200 p-0 hover:border-[#8E001C] hover:text-[#8E001C] transition-colors">
-                <MessageCircle className="w-5 h-5" />
+              <Button
+                variant="outline"
+                className={`h-12 w-12 rounded-full border-gray-200 p-0 hover:border-[#8E001C] hover:text-[#8E001C] transition-colors`}
+                onClick={async () => {
+                  const token = localStorage.getItem('token');
+                  if (!token) return toast.error("Please login to shortlist");
+                  try {
+                    const res = await toggleShortlist(profileId!, token);
+                    toast.success(res.message);
+                  } catch (err) {
+                    toast.error("Failed to update shortlist");
+                  }
+                }}
+              >
+                <Star className="w-5 h-5" />
               </Button>
               <Button variant="outline" className="h-12 w-12 rounded-full border-gray-200 p-0 hover:border-gray-900 transition-colors">
                 <Share2 className="w-5 h-5 text-gray-600" />

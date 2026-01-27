@@ -41,12 +41,14 @@ const statusRoute = require("./routes/status");
 const adminRoute = require("./routes/admin");
 const mastersRoute = require("./routes/masters");
 const paymentRoute = require("./routes/payment");
+const userRoute = require("./routes/user");
 
 app.use("/api/auth", authRoute);
 app.use("/api/status", statusRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/masters", mastersRoute);
 app.use("/api/payment", paymentRoute);
+app.use("/api/user", userRoute);
 
 app.get("/", (req, res) => {
   res.send("Matrimony API is running");

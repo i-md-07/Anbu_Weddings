@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchCurrentUser } from "../services/api";
+import { fetchCurrentUser, fetchDashboardStats, fetchRecommendations, fetchShortlists, fetchRecentActivity } from "../services/api";
 import { motion } from "motion/react";
 import {
   Heart,
@@ -17,8 +17,8 @@ import {
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Loader2 } from "lucide-react";
 
 interface DashboardPageProps {
   onNavigate?: (page: string) => void;
@@ -26,28 +26,48 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
-  const [activeTab, setActiveTab] = useState("overview");
+  // const [activeTab, setActiveTab] = useState("overview"); // Removed unused state
   const [userData, setUserData] = useState<any>(null);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [shortlisted, setShortlisted] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
+    const loadDashboardData = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const data = await fetchCurrentUser(token);
+          setLoading(true);
+          const [user, stats, recs, shorts, activity] = await Promise.all([
+            fetchCurrentUser(token),
+            fetchDashboardStats(token),
+            fetchRecommendations(token),
+            fetchShortlists(token),
+            fetchRecentActivity(token)
+          ]);
+
           setUserData({
-            name: data.username,
-            age: new Date().getFullYear() - new Date(data.dob).getFullYear(),
-            city: data.district,
+            name: user.username,
+            age: new Date().getFullYear() - new Date(user.dob).getFullYear(),
+            city: user.district,
             profileCompletion: 70, // Mock calculation for now
-            avatar: data.photo ? `http://localhost:5000/${data.photo}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200"
+            avatar: user.photo ? `http://localhost:5000/${user.photo}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200"
           });
+
+          setDashboardStats(stats);
+          setRecommendations(recs);
+          setShortlisted(shorts);
+          setRecentActivity(activity);
         } catch (error) {
-          console.error("Failed to load user", error);
+          console.error("Failed to load dashboard data", error);
+        } finally {
+          setLoading(false);
         }
       }
     };
-    loadUser();
+    loadDashboardData();
   }, []);
 
   const user = userData || {
@@ -69,85 +89,30 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
   };
 
   const stats = [
-    { label: "Profile Views", value: "342", icon: Eye, color: "#8E001C" },
-    { label: "Interests Sent", value: "28", icon: Heart, color: "#C5A059" },
-    { label: "Interests Received", value: "64", icon: Star, color: "#8E001C" },
-    { label: "Messages", value: "15", icon: MessageCircle, color: "#C5A059" }
+    { label: "Profile Views", value: dashboardStats?.profileViews || "0", icon: Eye, color: "#8E001C" },
+    { label: "Interests Sent", value: dashboardStats?.interestsSent || "0", icon: Heart, color: "#C5A059" },
+    { label: "Interests Received", value: dashboardStats?.interestsReceived || "0", icon: Star, color: "#8E001C" },
+    { label: "Messages", value: dashboardStats?.messages || "0", icon: MessageCircle, color: "#C5A059" }
   ];
 
-  const recommendations = [
-    {
-      id: 1,
-      name: "Ananya Kapoor",
-      age: 26,
-      profession: "Doctor",
-      city: "Delhi",
-      matchScore: 94,
-      image: "https://images.unsplash.com/photo-1710425804836-a1de39056b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
-    },
-    {
-      id: 2,
-      name: "Meera Patel",
-      age: 27,
-      profession: "CA",
-      city: "Ahmedabad",
-      matchScore: 91,
-      image: "https://images.unsplash.com/photo-1653671832574-029b950a5749?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
-    },
-    {
-      id: 3,
-      name: "Divya Nair",
-      age: 25,
-      profession: "Architect",
-      city: "Kochi",
-      matchScore: 88,
-      image: "https://images.unsplash.com/photo-1710425804836-a1de39056b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
-    }
-  ];
-
-  const recentActivity = [
-    {
-      type: "interest_received",
-      name: "Priya Sharma",
-      time: "2 hours ago",
-      avatar: "https://images.unsplash.com/photo-1710425804836-a1de39056b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=100"
-    },
-    {
-      type: "profile_view",
-      name: "Kavya Reddy",
-      time: "5 hours ago",
-      avatar: "https://images.unsplash.com/photo-1653671832574-029b950a5749?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=100"
-    },
-    {
-      type: "message",
-      name: "Aisha Khan",
-      time: "1 day ago",
-      avatar: "https://images.unsplash.com/photo-1710425804836-a1de39056b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=100"
-    }
-  ];
-
-  const shortlisted = [
-    {
-      id: 1,
-      name: "Sneha Joshi",
-      age: 28,
-      profession: "Consultant",
-      image: "https://images.unsplash.com/photo-1710425804836-a1de39056b40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=300"
-    },
-    {
-      id: 2,
-      name: "Riya Desai",
-      age: 26,
-      profession: "Designer",
-      image: "https://images.unsplash.com/photo-1653671832574-029b950a5749?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=300"
-    }
-  ];
+  // Recommendations and shortlisted profiles are now sourced from state
 
   const handleNavigate = (page: string) => {
     if (onNavigate) {
       onNavigate(page);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F9F9]">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#8E001C] animate-spin mx-auto mb-4" />
+          <p className="text-[#717182]" style={{ fontFamily: "'Inter', sans-serif" }}>Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F9F9F9]">
@@ -305,7 +270,7 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
                 </div>
 
                 <div className="space-y-4">
-                  {recommendations.map((profile, index) => (
+                  {recommendations.length > 0 ? recommendations.map((profile, index) => (
                     <motion.div
                       key={profile.id}
                       initial={{ opacity: 0, x: -20 }}
@@ -357,7 +322,12 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
                         </Button>
                       </div>
                     </motion.div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-8 text-[#717182]">
+                      <Users className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                      <p>No recommendations found yet.</p>
+                    </div>
+                  )}
                 </div>
               </Card>
             </motion.div>
@@ -376,7 +346,7 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
                   Your Shortlisted Profiles
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
-                  {shortlisted.map((profile) => (
+                  {shortlisted.length > 0 ? shortlisted.map((profile) => (
                     <div
                       key={profile.id}
                       className="group relative rounded-xl overflow-hidden cursor-pointer"
@@ -401,7 +371,12 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
                         </p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="col-span-2 text-center py-8 text-[#717182]">
+                      <Star className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                      <p>No shortlisted profiles yet.</p>
+                    </div>
+                  )}
                 </div>
               </Card>
             </motion.div>
@@ -409,64 +384,50 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
 
           {/* Right Column - Activity & Tips */}
           <div className="space-y-8">
-            {/* Recent Activity */}
+            {/* New Related Matches (Replacing Recent Activity - WAIT, user wants Activity feed here) */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {/* New Related Matches (Replacing Recent Activity) */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Card className="p-6 bg-white border-[#C5A059]/20 shadow-md">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2
-                      style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600, color: '#1A1A1A' }}
-                    >
-                      New Related Matches
-                    </h2>
-                  </div>
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#F9F9F9] cursor-pointer transition-colors group">
-                        <div className="relative">
-                          <img
-                            src={`https://images.unsplash.com/photo-${i === 1 ? '1605648916319-cf082f7524a1' : i === 2 ? '1710425804836-a1de39056b40' : '1653671832574-029b950a5749'}?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=100`}
-                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
-                            alt="Match"
-                          />
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-[#1A1A1A] text-sm" style={{ fontFamily: "'Playfair Display', serif" }}>
-                            {i === 1 ? 'Sanya M.' : i === 2 ? 'Priya K.' : 'Riya S.'}
-                          </p>
-                          <p className="text-xs text-[#717182]" style={{ fontFamily: "'Inter', sans-serif" }}>
-                            Matches your preferences
-                          </p>
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-[#8E001C] opacity-0 group-hover:opacity-100 transition-opacity bg-[#8E001C]/5"
-                        >
-                          <Heart className="w-4 h-4" />
-                        </Button>
+              <Card className="p-6 bg-white border-[#C5A059]/20 shadow-md">
+                <div className="flex items-center justify-between mb-6">
+                  <h2
+                    style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600, color: '#1A1A1A' }}
+                  >
+                    Recent Activity
+                  </h2>
+                </div>
+                <div className="space-y-4">
+                  {recentActivity.length > 0 ? recentActivity.map((activity, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#F9F9F9] cursor-pointer transition-colors group">
+                      <div className="relative">
+                        <img
+                          src={activity.avatar ? `http://localhost:5000/${activity.avatar}` : `https://images.unsplash.com/photo-${i === 1 ? '1605648916319-cf082f7524a1' : i === 2 ? '1710425804836-a1de39056b40' : '1653671832574-029b950a5749'}?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=100`}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                          alt="Activity"
+                        />
+                        <div className={`absolute bottom-0 right-0 w-3 h-3 ${activity.type === 'view' ? 'bg-blue-500' : 'bg-pink-500'} rounded-full border-2 border-white`}></div>
                       </div>
-                    ))}
-                    <Button
-                      variant="link"
-                      className="w-full text-[#8E001C] text-sm font-semibold"
-                      onClick={() => handleNavigate('browse')}
-                    >
-                      View All Matches
-                    </Button>
-                  </div>
-                </Card>
-              </motion.div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-[#1A1A1A] text-sm" style={{ fontFamily: "'Playfair Display', serif" }}>
+                          {activity.name}
+                        </p>
+                        <p className="text-xs text-[#717182]" style={{ fontFamily: "'Inter', sans-serif" }}>
+                          {activity.type === 'view' ? 'Viewed your profile' : 'Sent you an interest'}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(activity.time).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )) : (
+                    <div className="text-center py-4 text-gray-400 text-sm">
+                      No recent activity.
+                    </div>
+                  )}
+                </div>
+              </Card>
             </motion.div>
 
             {/* Profile Tips */}

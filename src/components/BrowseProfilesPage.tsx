@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { Heart, MapPin, Filter, SlidersHorizontal, Crown, Sparkles, Wifi, Camera, RotateCcw, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Heart, MapPin, Filter, SlidersHorizontal, Crown, Sparkles, Wifi, Camera, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Slider } from "./ui/slider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { profiles } from "../data/mockData";
+import { fetchBrowseProfiles, sendInterest } from "../services/api";
+import { toast } from "sonner";
 
 interface BrowseProfilesPageProps {
   onProfileSelect?: (id: number) => void;
@@ -18,7 +19,7 @@ function ProfileCard({
   onConnect,
   index = 0
 }: {
-  profile: typeof profiles[0];
+  profile: any;
   onViewProfile: (id: number) => void;
   onConnect: (id: number) => void;
   index?: number;
@@ -99,6 +100,45 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
   const [heightRange, setHeightRange] = useState([150, 180]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeQuickFilters, setActiveQuickFilters] = useState<string[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [religion, setReligion] = useState("any");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const loadProfiles = async (isNewSearch = false) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      setLoading(true);
+      const params = {
+        ageMin: ageRange[0],
+        ageMax: ageRange[1],
+        religion: religion !== 'any' ? religion : undefined,
+        search: search || undefined,
+        page: isNewSearch ? 1 : page,
+        pageSize: 20
+      };
+
+      const data = await fetchBrowseProfiles(params, token);
+      if (isNewSearch) {
+        setProfiles(data);
+        setPage(1);
+      } else {
+        setProfiles(prev => [...prev, ...data]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch profiles", err);
+      toast.error("Failed to load profiles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfiles(true);
+  }, [ageRange, religion, activeQuickFilters]); // Trigger on filter change
 
   const handleViewProfile = (id: number) => {
     if (onProfileSelect) {
@@ -106,9 +146,15 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
     }
   };
 
-  const handleConnect = (id: number) => {
-    console.log('Connect with profile:', id);
-    // Handle connect action
+  const handleConnect = async (id: number) => {
+    const token = localStorage.getItem('token');
+    if (!token) return toast.error("Please login to connect");
+    try {
+      await sendInterest(id, token);
+      toast.success("Interest sent successfully!");
+    } catch (err) {
+      toast.error("Failed to send interest");
+    }
   };
 
   const toggleQuickFilter = (filter: string) => {
@@ -158,20 +204,19 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
         />
       </div>
 
-      {/* Religion - Modern Select */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-gray-900">Religion</label>
-        <Select defaultValue="any">
+        <Select value={religion} onValueChange={setReligion}>
           <SelectTrigger className="bg-white border-gray-200 rounded-lg h-11 focus:border-[#8E001C] focus:ring-[#8E001C]/10">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             <SelectItem value="any" className="rounded-lg">Any Religion</SelectItem>
-            <SelectItem value="hindu" className="rounded-lg">Hindu</SelectItem>
-            <SelectItem value="muslim" className="rounded-lg">Muslim</SelectItem>
-            <SelectItem value="sikh" className="rounded-lg">Sikh</SelectItem>
-            <SelectItem value="christian" className="rounded-lg">Christian</SelectItem>
-            <SelectItem value="jain" className="rounded-lg">Jain</SelectItem>
+            <SelectItem value="Hindu" className="rounded-lg">Hindu</SelectItem>
+            <SelectItem value="Muslim" className="rounded-lg">Muslim</SelectItem>
+            <SelectItem value="Sikh" className="rounded-lg">Sikh</SelectItem>
+            <SelectItem value="Christian" className="rounded-lg">Christian</SelectItem>
+            <SelectItem value="Jain" className="rounded-lg">Jain</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -192,13 +237,17 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
         </Select>
       </div>
 
-      {/* Location */}
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-900">Location</label>
-        <Input
-          placeholder="Enter city or state"
-          className="bg-white border-gray-200 rounded-lg h-11 focus:border-[#8E001C] focus:ring-[#8E001C]/10"
-        />
+        <label className="text-sm font-semibold text-gray-900">Search</label>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Name, city, profession"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-white border-gray-200 rounded-lg h-11 focus:border-[#8E001C] focus:ring-[#8E001C]/10"
+          />
+          <Button onClick={() => loadProfiles(true)} className="h-11 bg-[#8E001C]">Go</Button>
+        </div>
       </div>
 
       {/* Reset Filters */}
@@ -312,27 +361,51 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
 
           {/* Profile Cards Grid - Responsive 1-2-3-4 Columns */}
           <div className="flex-1 min-w-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
-              {profiles.map((profile, index) => (
-                <ProfileCard
-                  key={profile.id}
-                  profile={profile}
-                  onViewProfile={handleViewProfile}
-                  onConnect={handleConnect}
-                  index={index}
-                />
-              ))}
-            </div>
+            {loading && profiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-12 h-12 text-[#8E001C] animate-spin mb-4" />
+                <p className="text-gray-500">Finding your matches...</p>
+              </div>
+            ) : profiles.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
+                {profiles.map((profile, index) => (
+                  <ProfileCard
+                    key={`${profile.id}-${index}`}
+                    profile={profile}
+                    onViewProfile={handleViewProfile}
+                    onConnect={handleConnect}
+                    index={index}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+                <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900">No profiles found</h3>
+                <p className="text-gray-500">Try adjusting your filters to see more results.</p>
+                <Button variant="link" onClick={resetFilters} className="text-[#8E001C] mt-2">
+                  Reset Filters
+                </Button>
+              </div>
+            )}
 
             {/* Load More */}
-            <div className="mt-10 text-center">
-              <Button
-                variant="outline"
-                className="px-8 py-5 border-gray-200 hover:border-[#8E001C] hover:text-[#8E001C] rounded-full font-medium"
-              >
-                Load More Profiles
-              </Button>
-            </div>
+            {profiles.length > 0 && (
+              <div className="mt-10 text-center">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPage(prev => prev + 1);
+                    loadProfiles();
+                  }}
+                  disabled={loading}
+                  className="px-8 py-5 border-gray-200 hover:border-[#8E001C] hover:text-[#8E001C] rounded-full font-medium"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Load More Profiles
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
