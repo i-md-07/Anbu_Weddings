@@ -1,0 +1,18 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "anbu-weddings"
+pages_build_output_dir = "dist"
+
+[vars]
+# Add non-sensitive variables here
+NODE_VERSION = "20"
+
+[[kv_namespaces]]
+# If you need KV storage
+# binding = "MY_KV"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxx"
+
+[build]
+command = "npm run build"
+
+[functions]
+compatibility_flags = ["nodejs_compat"]

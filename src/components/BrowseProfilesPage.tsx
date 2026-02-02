@@ -14,7 +14,7 @@ interface BrowseProfilesPageProps {
 
 // Reusable ProfileCard Component - Poster Style
 function ProfileCard({
-  profile,
+  profile,  
   onViewProfile,
   onConnect,
   index = 0
