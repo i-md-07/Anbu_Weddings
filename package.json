@@ -65,6 +65,7 @@
             "dev": "vite",
             "build": "vite build",
             "pages:dev": "npx wrangler pages dev build --compatibility-flag=nodejs_compat",
-            "pages:deploy": "npm run build && npx wrangler pages deploy build"
+            "pages:deploy": "npm run build && npx wrangler pages deploy build",
+            "deploy": "npm run pages:deploy"
       }
 }
