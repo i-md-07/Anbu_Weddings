@@ -6,23 +6,36 @@ const { poolPromise } = require('../db');
 async function run() {
   try {
     const pool = await poolPromise;
-    const sqlFile = fs.readFileSync(path.join(__dirname, '..', 'sql', 'mssql_setup.sql'), 'utf8');
+    const sqlFiles = [
+      'mssql_setup.sql',
+      'create_users_table.sql',
+      '../db_migration.sql', // at root relative to /sql
+      'create_dashboard_tables.sql'
+    ];
 
-    // Split on GO statements (case-insensitive) and execute each batch
-    const batches = sqlFile.split(/^\s*GO\s*$/gim);
-    for (const batch of batches) {
-      const trimmed = batch.trim();
-      if (!trimmed) continue;
-      console.log('Running batch...');
-      try {
-        await pool.request().batch(trimmed);
-      } catch (batchErr) {
-        // Log and continue on batch-level errors (e.g., drop non-existent proc or permission warnings)
-        console.warn('Batch error (continuing):', batchErr && batchErr.message ? batchErr.message : batchErr);
+    for (const fileName of sqlFiles) {
+      const filePath = path.join(__dirname, '..', 'sql', fileName);
+      console.log(`Processing ${fileName}...`);
+      if (!fs.existsSync(filePath)) {
+        console.warn(`File not found: ${filePath}, skipping.`);
         continue;
       }
+
+      const sqlContent = fs.readFileSync(filePath, 'utf8');
+      const batches = sqlContent.split(/^\s*GO\s*$/gim);
+
+      for (const batch of batches) {
+        const trimmed = batch.trim();
+        if (!trimmed) continue;
+        try {
+          await pool.request().batch(trimmed);
+        } catch (batchErr) {
+          console.warn(`Batch error in ${fileName} (continuing):`, batchErr.message);
+        }
+      }
+      console.log(`Finished ${fileName}`);
     }
-    console.log('Database setup finished');
+    console.log('Database initialization finished');
     process.exit(0);
   } catch (err) {
     console.error('Error running setup script:', err);

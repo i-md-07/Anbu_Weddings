@@ -11,6 +11,16 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/db-columns', async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request().query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users'");
+    res.json({ columns: result.recordset.map(r => r.COLUMN_NAME) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 router.get('/db-details', async (req, res) => {
   try {
     const pool = await poolPromise;

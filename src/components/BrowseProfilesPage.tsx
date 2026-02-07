@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Heart, MapPin, Filter, SlidersHorizontal, Crown, Sparkles, Wifi, Camera, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -14,7 +14,7 @@ interface BrowseProfilesPageProps {
 
 // Reusable ProfileCard Component - Poster Style
 function ProfileCard({
-  profile,  
+  profile,
   onViewProfile,
   onConnect,
   index = 0
@@ -105,6 +105,19 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
   const [religion, setReligion] = useState("any");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  const lastProfileElementRef = useCallback((node: any) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
 
   const loadProfiles = async (isNewSearch = false) => {
     const token = localStorage.getItem('token');
@@ -112,29 +125,40 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
 
     try {
       setLoading(true);
+      const currentPage = isNewSearch ? 1 : page;
       const params = {
         ageMin: ageRange[0],
         ageMax: ageRange[1],
         religion: religion !== 'any' ? religion : undefined,
         search: search || undefined,
-        page: isNewSearch ? 1 : page,
-        pageSize: 20
+        page: currentPage,
+        pageSize: 10
       };
 
       const data = await fetchBrowseProfiles(params, token);
+
       if (isNewSearch) {
         setProfiles(data);
         setPage(1);
       } else {
         setProfiles(prev => [...prev, ...data]);
       }
-    } catch (err) {
+
+      setHasMore(data.length === 10);
+    } catch (err: any) {
       console.error("Failed to fetch profiles", err);
-      toast.error("Failed to load profiles");
+      const msg = err.response?.data?.details || err.response?.data?.message || "Failed to load profiles";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (page > 1) {
+      loadProfiles(false);
+    }
+  }, [page]);
 
   useEffect(() => {
     loadProfiles(true);
@@ -368,15 +392,30 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
               </div>
             ) : profiles.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
-                {profiles.map((profile, index) => (
-                  <ProfileCard
-                    key={`${profile.id}-${index}`}
-                    profile={profile}
-                    onViewProfile={handleViewProfile}
-                    onConnect={handleConnect}
-                    index={index}
-                  />
-                ))}
+                {profiles.map((profile, index) => {
+                  if (profiles.length === index + 1) {
+                    return (
+                      <div ref={lastProfileElementRef} key={`${profile.id}-${index}`}>
+                        <ProfileCard
+                          profile={profile}
+                          onViewProfile={handleViewProfile}
+                          onConnect={handleConnect}
+                          index={index}
+                        />
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <ProfileCard
+                        key={`${profile.id}-${index}`}
+                        profile={profile}
+                        onViewProfile={handleViewProfile}
+                        onConnect={handleConnect}
+                        index={index}
+                      />
+                    );
+                  }
+                })}
               </div>
             ) : (
               <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
@@ -389,23 +428,7 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
               </div>
             )}
 
-            {/* Load More */}
-            {profiles.length > 0 && (
-              <div className="mt-10 text-center">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setPage(prev => prev + 1);
-                    loadProfiles();
-                  }}
-                  disabled={loading}
-                  className="px-8 py-5 border-gray-200 hover:border-[#8E001C] hover:text-[#8E001C] rounded-full font-medium"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Load More Profiles
-                </Button>
-              </div>
-            )}
+
           </div>
         </div>
       </div>

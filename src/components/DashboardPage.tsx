@@ -40,7 +40,7 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
       if (token) {
         try {
           setLoading(true);
-          const [user, stats, recs, shorts, activity] = await Promise.all([
+          const results = await Promise.allSettled([
             fetchCurrentUser(token),
             fetchDashboardStats(token),
             fetchRecommendations(token),
@@ -48,18 +48,28 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
             fetchRecentActivity(token)
           ]);
 
-          setUserData({
-            name: user.username,
-            age: new Date().getFullYear() - new Date(user.dob).getFullYear(),
-            city: user.district,
-            profileCompletion: 70, // Mock calculation for now
-            avatar: user.photo ? `http://localhost:5000/${user.photo}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200"
-          });
+          const [userRes, statsRes, recsRes, shortsRes, activityRes] = results;
 
-          setDashboardStats(stats);
-          setRecommendations(recs);
-          setShortlisted(shorts);
-          setRecentActivity(activity);
+          if (userRes.status === 'fulfilled') {
+            const user = userRes.value;
+            const dobDate = user.dob ? new Date(user.dob) : null;
+            const calculatedAge = dobDate && !isNaN(dobDate.getTime())
+              ? new Date().getFullYear() - dobDate.getFullYear()
+              : "N/A";
+
+            setUserData({
+              name: user.username || "User",
+              age: calculatedAge,
+              city: user.district || "Not specified",
+              profileCompletion: 70, // Mock calculation for now
+              avatar: user.photo ? `/uploads/${user.photo.split(/[/\\]/).pop()}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200"
+            });
+          }
+
+          if (statsRes.status === 'fulfilled') setDashboardStats(statsRes.value);
+          if (recsRes.status === 'fulfilled') setRecommendations(recsRes.value);
+          if (shortsRes.status === 'fulfilled') setShortlisted(shortsRes.value);
+          if (activityRes.status === 'fulfilled') setRecentActivity(activityRes.value);
         } catch (error) {
           console.error("Failed to load dashboard data", error);
         } finally {
@@ -270,7 +280,7 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
                 </div>
 
                 <div className="space-y-4">
-                  {recommendations.length > 0 ? recommendations.map((profile, index) => (
+                  {recommendations.slice(0, 5).length > 0 ? recommendations.slice(0, 5).map((profile, index) => (
                     <motion.div
                       key={profile.id}
                       initial={{ opacity: 0, x: -20 }}

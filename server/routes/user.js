@@ -146,8 +146,14 @@ router.get('/browse', authenticateUser, async (req, res) => {
         const userGender = userRes.recordset[0]?.gender;
         const targetGender = userGender === 'Male' ? 'Female' : 'Male';
 
-        const { ageMin, ageMax, religion, caste, search, page = 1, pageSize = 20 } = req.query;
+        const { ageMin, ageMax, religion, caste, search } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 20;
         const offset = (page - 1) * pageSize;
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Browse Profiles Request:', { userId, page, pageSize, offset, ageMin, ageMax, religion });
+        }
 
         let query = `
             SELECT Id, username, dob, PersonProfession, district, state, religion, caste, photo, IsApproved, CreatedAt,
@@ -162,11 +168,11 @@ router.get('/browse', authenticateUser, async (req, res) => {
 
         if (ageMin) {
             query += ` AND DATEDIFF(YEAR, dob, GETUTCDATETIME()) >= @ageMin`;
-            request.input('ageMin', sql.Int, ageMin);
+            request.input('ageMin', sql.Int, parseInt(ageMin));
         }
         if (ageMax) {
             query += ` AND DATEDIFF(YEAR, dob, GETUTCDATETIME()) <= @ageMax`;
-            request.input('ageMax', sql.Int, ageMax);
+            request.input('ageMax', sql.Int, parseInt(ageMax));
         }
         if (religion && religion !== 'any') {
             query += ` AND religion = @religion`;
@@ -182,7 +188,7 @@ router.get('/browse', authenticateUser, async (req, res) => {
         }
 
         query += ` ORDER BY CreatedAt DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`;
-        request.input('offset', sql.Int, offset).input('pageSize', sql.Int, parseInt(pageSize));
+        request.input('offset', sql.Int, offset).input('pageSize', sql.Int, pageSize);
 
         const result = await request.query(query);
 
@@ -196,15 +202,19 @@ router.get('/browse', authenticateUser, async (req, res) => {
             religion: r.religion,
             caste: r.caste,
             matchScore: 85, // Placeholder logic
-            image: r.photo ? `http://localhost:5000/${r.photo}` : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop",
+            image: r.photo ? `/uploads/${r.photo.split(/[/\\]/).pop()}` : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop",
             isNew: r.isNew === 1,
             isPremium: false // Placeholder
         }));
 
         res.json(formatted);
     } catch (err) {
-        console.error('Browse error:', err);
-        res.status(500).json({ message: 'Server Error' });
+        console.error('Browse error details:', {
+            message: err.message,
+            stack: err.stack,
+            query: err.query
+        });
+        res.status(500).json({ message: 'Server Error', details: err.message });
     }
 });
 

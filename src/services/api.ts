@@ -153,7 +153,7 @@ export const fetchDashboardStats = async (token: string) => {
 
 export const fetchRecommendations = async (token: string) => {
     try {
-        const response = await axios.get('http://localhost:5000/api/user/recommendations', {
+        const response = await axios.get('/api/user/recommendations', {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
@@ -164,7 +164,7 @@ export const fetchRecommendations = async (token: string) => {
 
 export const fetchShortlists = async (token: string) => {
     try {
-        const response = await axios.get('http://localhost:5000/api/user/shortlists', {
+        const response = await axios.get('/api/user/shortlists', {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
@@ -175,7 +175,7 @@ export const fetchShortlists = async (token: string) => {
 
 export const toggleShortlist = async (profileId: number, token: string) => {
     try {
-        const response = await axios.post('http://localhost:5000/api/user/shortlist', { profileId }, {
+        const response = await axios.post('/api/user/shortlist', { profileId }, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
@@ -186,7 +186,7 @@ export const toggleShortlist = async (profileId: number, token: string) => {
 
 export const sendInterest = async (receiverId: number, token: string) => {
     try {
-        const response = await axios.post('http://localhost:5000/api/user/interest', { receiverId }, {
+        const response = await axios.post('/api/user/interest', { receiverId }, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
@@ -197,7 +197,7 @@ export const sendInterest = async (receiverId: number, token: string) => {
 
 export const recordProfileView = async (profileId: number, token: string) => {
     try {
-        const response = await axios.post('http://localhost:5000/api/user/record-view', { profileId }, {
+        const response = await axios.post('/api/user/record-view', { profileId }, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
@@ -208,7 +208,7 @@ export const recordProfileView = async (profileId: number, token: string) => {
 
 export const fetchRecentActivity = async (token: string) => {
     try {
-        const response = await axios.get('http://localhost:5000/api/user/recent-activity', {
+        const response = await axios.get('/api/user/recent-activity', {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
@@ -219,7 +219,7 @@ export const fetchRecentActivity = async (token: string) => {
 
 export const fetchBrowseProfiles = async (params: any, token: string) => {
     try {
-        const response = await axios.get('http://localhost:5000/api/user/browse', {
+        const response = await axios.get('/api/user/browse', {
             headers: { Authorization: `Bearer ${token}` },
             params
         });
