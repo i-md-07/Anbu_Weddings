@@ -1,5 +1,5 @@
 {
-      "name": "High-Fidelity Homepage Design",
+      "name": "anbu-weddings",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
@@ -64,7 +64,7 @@
       "scripts": {
             "dev": "vite",
             "build": "vite build",
-            "pages:dev": "npx wrangler pages dev dist --compatibility-flag=nodejs_compat",
-            "pages:deploy": "npm run build && npx wrangler pages deploy dist"
+            "pages:dev": "npx wrangler pages dev build --compatibility-flag=nodejs_compat",
+            "pages:deploy": "npm run build && npx wrangler pages deploy build"
       }
 }

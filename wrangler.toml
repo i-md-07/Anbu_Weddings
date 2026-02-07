@@ -1,6 +1,6 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "anbu-weddings"
-pages_build_output_dir = "dist"
+pages_build_output_dir = "build"
 
 [vars]
 # Add non-sensitive variables here
