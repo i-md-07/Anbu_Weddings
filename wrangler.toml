@@ -12,6 +12,3 @@ NODE_VERSION = "20"
 # If you need KV storage
 # binding = "MY_KV"
 # id = "xxxxxxxxxxxxxxxxxxxxxxxx"
-
-# [build]
-# command = "npm run build"
