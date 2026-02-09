@@ -13,5 +13,5 @@ NODE_VERSION = "20"
 # binding = "MY_KV"
 # id = "xxxxxxxxxxxxxxxxxxxxxxxx"
 
-[build]
-command = "npm run build"
+# [build]
+# command = "npm run build"
