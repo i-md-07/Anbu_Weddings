@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { poolPromise } = require('../db');
+const { poolPromise, sql } = require('../db');
 const multer = require('multer');
 const path = require('path');
 
@@ -73,37 +73,37 @@ router.get('/users', async (req, res) => {
 
     if (req.query.search) {
       where += " AND (username LIKE '%' + @search + '%' OR email LIKE '%' + @search + '%' OR mobile LIKE '%' + @search + '%' OR PersonProfession LIKE '%' + @search + '%' OR FatherProfession LIKE '%' + @search + '%')";
-      request.input('search', require('mssql').NVarChar(255), req.query.search);
+      request.input('search', sql.NVarChar(255), req.query.search);
     }
 
     if (req.query.states) {
       const states = req.query.states.split(',');
       where += ` AND state IN (${states.map((_, i) => `@state${i}`).join(',')})`;
-      states.forEach((s, i) => request.input(`state${i}`, require('mssql').NVarChar(100), s));
+      states.forEach((s, i) => request.input(`state${i}`, sql.NVarChar(100), s));
     }
 
     if (req.query.religions) {
       const religions = req.query.religions.split(',');
       where += ` AND religion IN (${religions.map((_, i) => `@rel${i}`).join(',')})`;
-      religions.forEach((r, i) => request.input(`rel${i}`, require('mssql').NVarChar(100), r));
+      religions.forEach((r, i) => request.input(`rel${i}`, sql.NVarChar(100), r));
     }
 
     if (req.query.castes) {
       const castes = req.query.castes.split(',');
       where += ` AND caste IN (${castes.map((_, i) => `@caste${i}`).join(',')})`;
-      castes.forEach((c, i) => request.input(`caste${i}`, require('mssql').NVarChar(100), c));
+      castes.forEach((c, i) => request.input(`caste${i}`, sql.NVarChar(100), c));
     }
 
     if (req.query.professions) {
       const profs = req.query.professions.split(',');
       where += ` AND PersonProfession IN (${profs.map((_, i) => `@prof${i}`).join(',')})`;
-      profs.forEach((p, i) => request.input(`prof${i}`, require('mssql').NVarChar(100), p));
+      profs.forEach((p, i) => request.input(`prof${i}`, sql.NVarChar(100), p));
     }
 
     if (req.query.fatherProfessions) {
       const fprofs = req.query.fatherProfessions.split(',');
       where += ` AND FatherProfession IN (${fprofs.map((_, i) => `@fprof${i}`).join(',')})`;
-      fprofs.forEach((p, i) => request.input(`fprof${i}`, require('mssql').NVarChar(100), p));
+      fprofs.forEach((p, i) => request.input(`fprof${i}`, sql.NVarChar(100), p));
     }
 
     if (req.query.statuses) {
@@ -120,19 +120,27 @@ router.get('/users', async (req, res) => {
     }
 
     if (req.query.pending === '1') {
-      where += " AND IsApproved = 0 AND DATEDIFF(day, CreatedAt, SYSUTCDATETIME()) <= 7";
+      where += " AND IsApproved = 0";
     }
 
-    // Step 1: Get Total Count
-    const countQuery = `SELECT COUNT(*) as total FROM dbo.Users WHERE ${where}`;
-    const countRes = await request.query(countQuery);
-    const totalCount = countRes.recordset[0].total;
+    // Step 1: Get Total Count and Aggregate Stats
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN IsApproved = 1 AND (Status = 'Active' OR Status IS NULL) THEN 1 ELSE 0 END) as activeCount,
+        SUM(CASE WHEN IsApproved = 0 THEN 1 ELSE 0 END) as pendingCount,
+        SUM(CASE WHEN UserType = 1 THEN 1 ELSE 0 END) as adminCount
+      FROM dbo.Users 
+      WHERE ${where}
+    `;
+    const statsRes = await request.query(statsQuery);
+    const { total: totalCount, activeCount, pendingCount, adminCount } = statsRes.recordset[0];
 
     // Step 2: Get Paginated Data
     // We must reset or use a clone for inputs if we reuse request? 
     // mssql request object keeps inputs. So we can just add offset/fetch params.
-    request.input('offset', require('mssql').Int, offset);
-    request.input('pageSize', require('mssql').Int, pageSize);
+    request.input('offset', sql.Int, offset);
+    request.input('pageSize', sql.Int, pageSize);
 
     const sqlQuery = `
       SELECT Id, username, email, mobile, UserType, IsApproved, CreatedAt, state, district, religion, caste, subCaste, gender, FatherProfession, PersonProfession, Status, ExpiryDate 
@@ -152,6 +160,9 @@ router.get('/users', async (req, res) => {
     res.json({
       users: usersRes.recordset,
       totalCount,
+      activeCount,
+      pendingCount,
+      adminCount,
       page,
       pageSize,
       totalPages: Math.ceil(totalCount / pageSize)
@@ -252,7 +263,7 @@ router.get('/users/:id', async (req, res) => {
 
     const uid = parseInt(req.params.id, 10);
     const pool = await poolPromise;
-    const result = await pool.request().input('id', require('mssql').Int, uid).query('SELECT * FROM dbo.Users WHERE Id = @id');
+    const result = await pool.request().input('id', sql.Int, uid).query('SELECT * FROM dbo.Users WHERE Id = @id');
     const row = result.recordset && result.recordset[0] ? result.recordset[0] : null;
     if (!row) return res.status(404).json({ message: 'User not found' });
     res.json({ user: row });
@@ -287,33 +298,33 @@ router.put('/users/:id', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 
     } = req.body;
 
     const pool = await poolPromise;
-    const reqQ = pool.request().input('id', require('mssql').Int, uid);
+    const reqQ = pool.request().input('id', sql.Int, uid);
 
     const updates = [];
-    if (username) { updates.push("username = @username"); reqQ.input('username', require('mssql').NVarChar(255), username); }
-    if (email) { updates.push("email = @email"); reqQ.input('email', require('mssql').NVarChar(255), email); }
-    if (mobile) { updates.push("mobile = @mobile"); reqQ.input('mobile', require('mssql').NVarChar(50), mobile); }
-    if (dob) { updates.push("dob = @dob"); reqQ.input('dob', require('mssql').Date, dob); }
-    if (gender) { updates.push("gender = @gender"); reqQ.input('gender', require('mssql').NVarChar(50), gender); }
-    if (fatherName) { updates.push("fatherName = @fatherName"); reqQ.input('fatherName', require('mssql').NVarChar(255), fatherName); }
-    if (motherName) { updates.push("motherName = @motherName"); reqQ.input('motherName', require('mssql').NVarChar(255), motherName); }
-    if (familyAnnualIncome) { updates.push("familyAnnualIncome = @familyAnnualIncome"); reqQ.input('familyAnnualIncome', require('mssql').NVarChar(100), familyAnnualIncome); }
-    if (personAnnualIncome) { updates.push("personAnnualIncome = @personAnnualIncome"); reqQ.input('personAnnualIncome', require('mssql').NVarChar(100), personAnnualIncome); }
-    if (state) { updates.push("state = @state"); reqQ.input('state', require('mssql').NVarChar(100), state); }
-    if (district) { updates.push("district = @district"); reqQ.input('district', require('mssql').NVarChar(100), district); }
-    if (address) { updates.push("address = @address"); reqQ.input('address', require('mssql').NVarChar(500), address); }
-    if (religion) { updates.push("religion = @religion"); reqQ.input('religion', require('mssql').NVarChar(100), religion); }
-    if (caste) { updates.push("caste = @caste"); reqQ.input('caste', require('mssql').NVarChar(100), caste); }
-    if (subCaste) { updates.push("subCaste = @subCaste"); reqQ.input('subCaste', require('mssql').NVarChar(100), subCaste); }
-    if (gothram) { updates.push("gothram = @gothram"); reqQ.input('gothram', require('mssql').NVarChar(100), gothram); }
-    if (fatherProfession) { updates.push("FatherProfession = @fatherProfession"); reqQ.input('fatherProfession', require('mssql').NVarChar(100), fatherProfession); }
-    if (personProfession) { updates.push("PersonProfession = @personProfession"); reqQ.input('personProfession', require('mssql').NVarChar(100), personProfession); }
-    if (typeof isApproved !== 'undefined') { updates.push("IsApproved = @isApproved"); reqQ.input('isApproved', require('mssql').Bit, (isApproved === true || isApproved === 'true' || isApproved === '1' || isApproved === 1) ? 1 : 0); }
-    if (typeof newUserType !== 'undefined') { updates.push("UserType = @newUserType"); reqQ.input('newUserType', require('mssql').Int, newUserType); }
+    if (username) { updates.push("username = @username"); reqQ.input('username', sql.NVarChar(255), username); }
+    if (email) { updates.push("email = @email"); reqQ.input('email', sql.NVarChar(255), email); }
+    if (mobile) { updates.push("mobile = @mobile"); reqQ.input('mobile', sql.NVarChar(50), mobile); }
+    if (dob) { updates.push("dob = @dob"); reqQ.input('dob', sql.Date, dob); }
+    if (gender) { updates.push("gender = @gender"); reqQ.input('gender', sql.NVarChar(50), gender); }
+    if (fatherName) { updates.push("fatherName = @fatherName"); reqQ.input('fatherName', sql.NVarChar(255), fatherName); }
+    if (motherName) { updates.push("motherName = @motherName"); reqQ.input('motherName', sql.NVarChar(255), motherName); }
+    if (familyAnnualIncome) { updates.push("familyAnnualIncome = @familyAnnualIncome"); reqQ.input('familyAnnualIncome', sql.NVarChar(100), familyAnnualIncome); }
+    if (personAnnualIncome) { updates.push("personAnnualIncome = @personAnnualIncome"); reqQ.input('personAnnualIncome', sql.NVarChar(100), personAnnualIncome); }
+    if (state) { updates.push("state = @state"); reqQ.input('state', sql.NVarChar(100), state); }
+    if (district) { updates.push("district = @district"); reqQ.input('district', sql.NVarChar(100), district); }
+    if (address) { updates.push("address = @address"); reqQ.input('address', sql.NVarChar(500), address); }
+    if (religion) { updates.push("religion = @religion"); reqQ.input('religion', sql.NVarChar(100), religion); }
+    if (caste) { updates.push("caste = @caste"); reqQ.input('caste', sql.NVarChar(100), caste); }
+    if (subCaste) { updates.push("subCaste = @subCaste"); reqQ.input('subCaste', sql.NVarChar(100), subCaste); }
+    if (gothram) { updates.push("gothram = @gothram"); reqQ.input('gothram', sql.NVarChar(100), gothram); }
+    if (fatherProfession) { updates.push("FatherProfession = @fatherProfession"); reqQ.input('fatherProfession', sql.NVarChar(100), fatherProfession); }
+    if (personProfession) { updates.push("PersonProfession = @personProfession"); reqQ.input('personProfession', sql.NVarChar(100), personProfession); }
+    if (typeof isApproved !== 'undefined') { updates.push("IsApproved = @isApproved"); reqQ.input('isApproved', sql.Bit, (isApproved === true || isApproved === 'true' || isApproved === '1' || isApproved === 1) ? 1 : 0); }
+    if (typeof newUserType !== 'undefined') { updates.push("UserType = @newUserType"); reqQ.input('newUserType', sql.Int, newUserType); }
     if (password) {
       const bcrypt = require('bcryptjs');
       const hashed = await bcrypt.hash(password, 10);
-      updates.push("password = @password"); reqQ.input('password', require('mssql').NVarChar(255), hashed);
+      updates.push("password = @password"); reqQ.input('password', sql.NVarChar(255), hashed);
     }
 
     // Handle files
@@ -321,12 +332,12 @@ router.put('/users/:id', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 
       if (req.files['photo']) {
         const photoPath = req.files['photo'][0].path.replace(/\\/g, '/');
         updates.push("photo = @photo");
-        reqQ.input('photo', require('mssql').NVarChar(500), photoPath);
+        reqQ.input('photo', sql.NVarChar(500), photoPath);
       }
       if (req.files['jathagam']) {
         const jathagamPath = req.files['jathagam'][0].path.replace(/\\/g, '/');
         updates.push("jathagam = @jathagam");
-        reqQ.input('jathagam', require('mssql').NVarChar(500), jathagamPath);
+        reqQ.input('jathagam', sql.NVarChar(500), jathagamPath);
       }
     }
 
@@ -353,7 +364,7 @@ router.patch('/users/:id/approve', async (req, res) => {
     let userType = typeof userTypeFromToken === 'number' ? userTypeFromToken : null;
     if (userType === null) {
       const pool = await poolPromise;
-      const result = await pool.request().input('id', require('mssql').Int, decoded.id).query('SELECT UserType FROM dbo.Users WHERE Id = @id');
+      const result = await pool.request().input('id', sql.Int, decoded.id).query('SELECT UserType FROM dbo.Users WHERE Id = @id');
       const row = result.recordset && result.recordset[0] ? result.recordset[0] : null;
       userType = row ? row.UserType : 0;
     }
@@ -361,7 +372,7 @@ router.patch('/users/:id/approve', async (req, res) => {
 
     const uid = parseInt(req.params.id, 10);
     const pool2 = await poolPromise;
-    await pool2.request().input('id', require('mssql').Int, uid).query("UPDATE dbo.Users SET IsApproved = 1, Status = 'Active', UpdatedAt = SYSUTCDATETIME() WHERE Id = @id");
+    await pool2.request().input('id', sql.Int, uid).query("UPDATE dbo.Users SET IsApproved = 1, Status = 'Active', UpdatedAt = SYSUTCDATETIME() WHERE Id = @id");
     res.json({ message: 'Approved' });
   } catch (err) {
     console.error('Admin approve user error:', err);
@@ -380,7 +391,7 @@ async function ensureAdmin(req, res) {
     let userType = typeof userTypeFromToken === 'number' ? userTypeFromToken : null;
     if (userType === null) {
       const pool = await poolPromise;
-      const result = await pool.request().input('id', require('mssql').Int, decoded.id).query('SELECT UserType FROM dbo.Users WHERE Id = @id');
+      const result = await pool.request().input('id', sql.Int, decoded.id).query('SELECT UserType FROM dbo.Users WHERE Id = @id');
       const row = result.recordset && result.recordset[0] ? result.recordset[0] : null;
       userType = row ? row.UserType : 0;
     }
@@ -428,7 +439,7 @@ router.post('/masters/religions', async (req, res) => {
     const pool = await poolPromise;
     const result = await pool
       .request()
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('Name', sql.NVarChar(255), name)
       .execute('sp_Masters_Religions_Create');
 
     res.status(201).json({ id: result.recordset[0].Id });
@@ -459,8 +470,8 @@ router.put('/masters/religions/:id', async (req, res) => {
     const pool = await poolPromise;
     await pool
       .request()
-      .input('Id', require('mssql').Int, id)
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('Id', sql.Int, id)
+      .input('Name', sql.NVarChar(255), name)
       .execute('sp_Masters_Religions_Update');
 
     res.json({ message: 'Updated' });
@@ -481,7 +492,7 @@ router.delete('/masters/religions/:id', async (req, res) => {
     const pool = await poolPromise;
     await pool
       .request()
-      .input('ReligionId', require('mssql').Int, id)
+      .input('ReligionId', sql.Int, id)
       .execute('sp_Masters_Religions_Delete');
 
     res.json({ message: 'Deleted' });
@@ -504,7 +515,7 @@ router.get('/masters/religions/:id/castes', async (req, res) => {
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input('ReligionId', require('mssql').Int, religionId)
+      .input('ReligionId', sql.Int, religionId)
       .query(`
         SELECT Id, Name, CreatedAt, UpdatedAt
         FROM dbo.Masters_Castes
@@ -533,8 +544,8 @@ router.post('/masters/religions/:id/castes', async (req, res) => {
 
     // check duplicate
     const exists = await pool.request()
-      .input('ReligionId', require('mssql').Int, religionId)
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('ReligionId', sql.Int, religionId)
+      .input('Name', sql.NVarChar(255), name)
       .query(`
         SELECT Id
         FROM dbo.Masters_Castes
@@ -545,8 +556,8 @@ router.post('/masters/religions/:id/castes', async (req, res) => {
       return res.status(400).json({ message: 'Already exists' });
 
     const insert = await pool.request()
-      .input('ReligionId', require('mssql').Int, religionId)
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('ReligionId', sql.Int, religionId)
+      .input('Name', sql.NVarChar(255), name)
       .query(`
         INSERT INTO dbo.Masters_Castes (ReligionId, Name)
         VALUES (@ReligionId, @Name);
@@ -573,8 +584,8 @@ router.put('/masters/castes/:id', async (req, res) => {
     const pool = await poolPromise;
 
     await pool.request()
-      .input('Id', require('mssql').Int, casteId)
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('Id', sql.Int, casteId)
+      .input('Name', sql.NVarChar(255), name)
       .query(`
         UPDATE dbo.Masters_Castes
         SET Name = @Name,
@@ -599,7 +610,7 @@ router.delete('/masters/castes/:id', async (req, res) => {
     const pool = await poolPromise;
 
     await pool.request()
-      .input('CasteId', require('mssql').Int, casteId)
+      .input('CasteId', sql.Int, casteId)
       .query(`
         DELETE FROM dbo.Masters_SubCastes WHERE CasteId = @CasteId;
         DELETE FROM dbo.Masters_Castes WHERE Id = @CasteId;
@@ -648,7 +659,7 @@ router.get('/masters/castes/:id/subcastes', async (req, res) => {
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input('CasteId', require('mssql').Int, casteId)
+      .input('CasteId', sql.Int, casteId)
       .query(`
         SELECT Id, Name, CreatedAt, UpdatedAt
         FROM dbo.Masters_SubCastes
@@ -676,8 +687,8 @@ router.post('/masters/castes/:id/subcastes', async (req, res) => {
     const pool = await poolPromise;
 
     const exists = await pool.request()
-      .input('CasteId', require('mssql').Int, casteId)
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('CasteId', sql.Int, casteId)
+      .input('Name', sql.NVarChar(255), name)
       .query(`
         SELECT Id
         FROM dbo.Masters_SubCastes
@@ -688,8 +699,8 @@ router.post('/masters/castes/:id/subcastes', async (req, res) => {
       return res.status(400).json({ message: 'Already exists' });
 
     const insert = await pool.request()
-      .input('CasteId', require('mssql').Int, casteId)
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('CasteId', sql.Int, casteId)
+      .input('Name', sql.NVarChar(255), name)
       .query(`
         INSERT INTO dbo.Masters_SubCastes (CasteId, Name)
         VALUES (@CasteId, @Name);
@@ -716,8 +727,8 @@ router.put('/masters/subcastes/:id', async (req, res) => {
     const pool = await poolPromise;
 
     await pool.request()
-      .input('Id', require('mssql').Int, subCasteId)
-      .input('Name', require('mssql').NVarChar(255), name)
+      .input('Id', sql.Int, subCasteId)
+      .input('Name', sql.NVarChar(255), name)
       .query(`
         UPDATE dbo.Masters_SubCastes
         SET Name = @Name,
@@ -741,7 +752,7 @@ router.delete('/masters/subcastes/:id', async (req, res) => {
     const pool = await poolPromise;
 
     await pool.request()
-      .input('Id', require('mssql').Int, subCasteId)
+      .input('Id', sql.Int, subCasteId)
       .query(`
         DELETE FROM dbo.Masters_SubCastes WHERE Id = @Id
       `);
@@ -761,7 +772,7 @@ router.get('/users/:id/payments', async (req, res) => {
     const uid = parseInt(req.params.id, 10);
     const pool = await poolPromise;
     const result = await pool.request()
-      .input('UserId', require('mssql').Int, uid)
+      .input('UserId', sql.Int, uid)
       .query(`
         SELECT Id, Amount, PaymentDate, ExpiryDate, Status
         FROM dbo.Payments
@@ -800,23 +811,27 @@ router.get('/payments', async (req, res) => {
     let where = 'WHERE u.UserType = 0';
     if (search) {
       where += " AND (u.username LIKE '%' + @search + '%' OR u.mobile LIKE '%' + @search + '%')";
-      request.input('search', require('mssql').NVarChar(255), search);
+      request.input('search', sql.NVarChar(255), search);
     }
 
-    // Get Total Count
-    const countQuery = `
-      SELECT COUNT(DISTINCT u.Id) as total
+    // Get Total Count and Aggregate Stats
+    const statsQuery = `
+      SELECT 
+        COUNT(DISTINCT u.Id) as total,
+        SUM(p.Amount) as totalCollections,
+        COUNT(DISTINCT CASE WHEN p.Amount > 0 THEN u.Id END) as paidUsersCount,
+        COUNT(DISTINCT CASE WHEN u.Status = 'Active' THEN u.Id END) as activeUsersCount
       FROM dbo.Users u
       LEFT JOIN dbo.Payments p ON u.Id = p.UserId
       ${where}
     `;
-    const countRes = await request.query(countQuery);
-    const totalCount = countRes.recordset[0].total;
-    console.log('Payments Total Count:', totalCount);
+    const statsRes = await request.query(statsQuery);
+    const { total: totalCount, totalCollections, paidUsersCount, activeUsersCount } = statsRes.recordset[0];
+    console.log('Payments Stats:', { totalCount, totalCollections, paidUsersCount, activeUsersCount });
 
     // Get Paginated Data
-    request.input('offset', require('mssql').Int, offset);
-    request.input('pageSize', require('mssql').Int, pageSize);
+    request.input('offset', sql.Int, offset);
+    request.input('pageSize', sql.Int, pageSize);
 
     const sqlQuery = `
       SELECT 
@@ -842,6 +857,9 @@ router.get('/payments', async (req, res) => {
     res.json({
       payments: result.recordset,
       totalCount,
+      totalCollections: totalCollections || 0,
+      paidUsersCount: paidUsersCount || 0,
+      activeUsersCount: activeUsersCount || 0,
       page,
       pageSize,
       totalPages: Math.ceil(totalCount / pageSize)

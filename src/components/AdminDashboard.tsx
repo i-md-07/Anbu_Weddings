@@ -47,6 +47,8 @@ export function AdminDashboard() {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [adminCount, setAdminCount] = useState(0);
 
   // Filters State
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
@@ -89,6 +91,8 @@ export function AdminDashboard() {
       setUsers(data.users || []);
       setTotalCount(data.totalCount || 0);
       setTotalPages(data.totalPages || 0);
+      setPendingCount(data.pendingCount || 0);
+      setAdminCount(data.adminCount || 0);
     } catch (error) {
       console.error("Failed to load users", error);
       toast.error("Failed to load users.");
@@ -108,6 +112,7 @@ export function AdminDashboard() {
   useEffect(() => {
     loadReligions();
     loadUniqueValues();
+    loadUsers();
   }, []);
 
   const loadUniqueValues = async () => {
@@ -125,7 +130,7 @@ export function AdminDashboard() {
 
   // Trigger loadUsers whenever we switch to the 'users' or 'pending' view, or filters change
   useEffect(() => {
-    if (view === "users" || view === "pending") {
+    if (view === "users" || view === "pending" || view === "overview") {
       loadUsers();
     }
   }, [view, currentPage, pageSize, selectedStates, selectedReligions, selectedCastes, selectedPersonProfessions, selectedFatherProfessions, selectedStatuses]);
@@ -168,11 +173,11 @@ export function AdminDashboard() {
             <div className="grid grid-cols-3 gap-4">
               <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView("users")}>
                 <div className="text-sm font-medium text-gray-500">Total Users</div>
-                <div className="text-2xl font-bold">{users.length}</div>
+                <div className="text-2xl font-bold">{totalCount}</div>
               </Card>
               <Card className="p-6">
                 <div className="text-sm font-medium text-gray-500">Admins</div>
-                <div className="text-2xl font-bold">{users.filter((u: any) => u.UserType === 1).length}</div>
+                <div className="text-2xl font-bold">{adminCount}</div>
               </Card>
               <Card
                 className="p-6 cursor-pointer hover:shadow-md transition-shadow border-yellow-200 bg-yellow-50/30"
@@ -180,7 +185,7 @@ export function AdminDashboard() {
               >
                 <div className="text-sm font-medium text-yellow-700">Pending Approvals</div>
                 <div className="text-2xl font-bold text-yellow-800">
-                  {users.filter((u: any) => u.IsApproved === 0).length}
+                  {pendingCount}
                 </div>
               </Card>
             </div>

@@ -146,51 +146,118 @@ router.get('/browse', authenticateUser, async (req, res) => {
         const userGender = userRes.recordset[0]?.gender;
         const targetGender = userGender === 'Male' ? 'Female' : 'Male';
 
-        const { ageMin, ageMax, religion, caste, search } = req.query;
+        const { ageMin, ageMax, religion, religions, states, castes, professions, fatherProfessions, statuses, search, online, photo, isPremium, isNew: isNewFilter } = req.query;
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 20;
         const offset = (page - 1) * pageSize;
 
         if (process.env.NODE_ENV === 'development') {
-            console.log('Browse Profiles Request:', { userId, page, pageSize, offset, ageMin, ageMax, religion });
+            console.log('Browse Profiles Request:', { userId, page, pageSize, offset, ageMin, ageMax, religions, states, castes, professions, fatherProfessions, statuses });
         }
 
-        let query = `
-            SELECT Id, username, dob, PersonProfession, district, state, religion, caste, photo, IsApproved, CreatedAt,
-                   (CASE WHEN CreatedAt > DATEADD(day, -7, GETUTCDATETIME()) THEN 1 ELSE 0 END) as isNew
-            FROM dbo.Users 
-            WHERE Id != @userId AND IsApproved = 1 AND gender = @targetGender
-        `;
+        let where = `WHERE Id != @userId AND IsApproved = 1 AND gender = @targetGender`;
 
         const request = pool.request()
             .input('userId', sql.Int, userId)
             .input('targetGender', sql.NVarChar, targetGender);
 
         if (ageMin) {
-            query += ` AND DATEDIFF(YEAR, dob, GETUTCDATETIME()) >= @ageMin`;
+            where += ` AND DATEDIFF(YEAR, dob, SYSUTCDATETIME()) >= @ageMin`;
             request.input('ageMin', sql.Int, parseInt(ageMin));
         }
         if (ageMax) {
-            query += ` AND DATEDIFF(YEAR, dob, GETUTCDATETIME()) <= @ageMax`;
+            where += ` AND DATEDIFF(YEAR, dob, SYSUTCDATETIME()) <= @ageMax`;
             request.input('ageMax', sql.Int, parseInt(ageMax));
         }
-        if (religion && religion !== 'any') {
-            query += ` AND religion = @religion`;
+
+        if (religions) {
+            const relList = religions.split(',').map(r => r.trim()).filter(Boolean);
+            if (relList.length > 0) {
+                where += ` AND religion IN (${relList.map((_, i) => `@rel${i}`).join(',')})`;
+                relList.forEach((r, i) => request.input(`rel${i}`, sql.NVarChar, r));
+            }
+        } else if (religion && religion !== 'any') {
+            where += ` AND religion = @religion`;
             request.input('religion', sql.NVarChar, religion);
         }
-        if (caste) {
-            query += ` AND caste LIKE '%' + @caste + '%'`;
-            request.input('caste', sql.NVarChar, caste);
+
+        if (states) {
+            const stateList = states.split(',').map(s => s.trim()).filter(Boolean);
+            if (stateList.length > 0) {
+                where += ` AND state IN (${stateList.map((_, i) => `@state${i}`).join(',')})`;
+                stateList.forEach((s, i) => request.input(`state${i}`, sql.NVarChar, s));
+            }
         }
+
+        if (castes) {
+            const casteList = castes.split(',').map(c => c.trim()).filter(Boolean);
+            if (casteList.length > 0) {
+                where += ` AND caste IN (${casteList.map((_, i) => `@caste${i}`).join(',')})`;
+                casteList.forEach((c, i) => request.input(`caste${i}`, sql.NVarChar, c));
+            }
+        }
+
+        if (professions) {
+            const profList = professions.split(',').map(p => p.trim()).filter(Boolean);
+            if (profList.length > 0) {
+                where += ` AND PersonProfession IN (${profList.map((_, i) => `@prof${i}`).join(',')})`;
+                profList.forEach((p, i) => request.input(`prof${i}`, sql.NVarChar, p));
+            }
+        }
+
+        if (fatherProfessions) {
+            const fprofList = fatherProfessions.split(',').map(p => p.trim()).filter(Boolean);
+            if (fprofList.length > 0) {
+                where += ` AND FatherProfession IN (${fprofList.map((_, i) => `@fprof${i}`).join(',')})`;
+                fprofList.forEach((fp, i) => request.input(`fprof${i}`, sql.NVarChar, fp));
+            }
+        }
+
+        if (statuses) {
+            const statusList = statuses.split(',');
+            const conditions = [];
+            if (statusList.includes('Active')) conditions.push("(Status = 'Active' OR (Status IS NULL AND IsApproved = 1))");
+            if (statusList.includes('Expired')) conditions.push("Status = 'Expired'");
+            if (conditions.length > 0) {
+                where += ` AND (${conditions.join(' OR ')})`;
+            }
+        }
+
+        // Quick Filters
+        if (online === 'true') {
+            // Placeholder: currently no online status field, could be based on LastLogin
+            // where += ` AND LastLoginAt > DATEADD(minute, -15, GETUTCDATETIME())`;
+        }
+        if (photo === 'true') {
+            where += ` AND photo IS NOT NULL AND photo != ''`;
+        }
+        if (isPremium === 'true') {
+            // Placeholder: assuming a column exists or using a logic
+            // where += ` AND IsPremium = 1`;
+        }
+        if (isNewFilter === 'true') {
+            where += ` AND CreatedAt > DATEADD(day, -7, SYSUTCDATETIME())`;
+        }
+
         if (search) {
-            query += ` AND (username LIKE '%' + @search + '%' OR district LIKE '%' + @search + '%' OR PersonProfession LIKE '%' + @search + '%')`;
+            where += ` AND (username LIKE '%' + @search + '%' OR district LIKE '%' + @search + '%' OR PersonProfession LIKE '%' + @search + '%' OR state LIKE '%' + @search + '%')`;
             request.input('search', sql.NVarChar, search);
         }
 
-        query += ` ORDER BY CreatedAt DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`;
-        request.input('offset', sql.Int, offset).input('pageSize', sql.Int, pageSize);
+        // Final query construction
+        request.input('offset', sql.Int, offset);
+        request.input('pageSize', sql.Int, pageSize);
 
-        const result = await request.query(query);
+        const sqlQuery = `
+            SELECT Id, username, dob, PersonProfession, FatherProfession, district, state, religion, caste, photo, IsApproved, CreatedAt, Status,
+                   (CASE WHEN CreatedAt > DATEADD(day, -7, SYSUTCDATETIME()) THEN 1 ELSE 0 END) as isNew
+            FROM dbo.Users 
+            ${where}
+            ORDER BY CreatedAt DESC
+            OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+        `;
+
+        const result = await request.query(sqlQuery);
 
         const formatted = result.recordset.map(r => ({
             id: r.Id,
@@ -201,8 +268,8 @@ router.get('/browse', authenticateUser, async (req, res) => {
             state: r.state || 'N/A',
             religion: r.religion,
             caste: r.caste,
-            matchScore: 85, // Placeholder logic
-            image: r.photo ? `/uploads/${r.photo.split(/[/\\]/).pop()}` : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop",
+            matchScore: 85,
+            image: r.photo ? (r.photo.startsWith('http') ? r.photo : `/uploads/${r.photo.split(/[/\\]/).pop()}`) : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=500&fit=crop",
             isNew: r.isNew === 1,
             isPremium: false // Placeholder
         }));

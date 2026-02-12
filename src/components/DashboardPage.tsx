@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
-import { fetchCurrentUser, fetchDashboardStats, fetchRecommendations, fetchShortlists, fetchRecentActivity } from "../services/api";
+import { fetchCurrentUser, fetchDashboardStats, fetchRecommendations, fetchRecentActivity } from "../services/api";
 import { motion } from "motion/react";
 import {
   Heart,
   Star,
   MessageCircle,
   Eye,
-  TrendingUp,
   Users,
-  Calendar,
   Bell,
   Settings,
   LogOut,
@@ -26,11 +24,9 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
-  // const [activeTab, setActiveTab] = useState("overview"); // Removed unused state
   const [userData, setUserData] = useState<any>(null);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [shortlisted, setShortlisted] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,11 +40,10 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
             fetchCurrentUser(token),
             fetchDashboardStats(token),
             fetchRecommendations(token),
-            fetchShortlists(token),
             fetchRecentActivity(token)
           ]);
 
-          const [userRes, statsRes, recsRes, shortsRes, activityRes] = results;
+          const [userRes, statsRes, recsRes, activityRes] = results;
 
           if (userRes.status === 'fulfilled') {
             const user = userRes.value;
@@ -68,7 +63,6 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
 
           if (statsRes.status === 'fulfilled') setDashboardStats(statsRes.value);
           if (recsRes.status === 'fulfilled') setRecommendations(recsRes.value);
-          if (shortsRes.status === 'fulfilled') setShortlisted(shortsRes.value);
           if (activityRes.status === 'fulfilled') setRecentActivity(activityRes.value);
         } catch (error) {
           console.error("Failed to load dashboard data", error);
@@ -93,7 +87,6 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
     if (onLogout) {
       onLogout();
     } else if (onNavigate) {
-      // Fallback if not passed
       onNavigate('home');
     }
   };
@@ -104,8 +97,6 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
     { label: "Interests Received", value: dashboardStats?.interestsReceived || "0", icon: Star, color: "#8E001C" },
     { label: "Messages", value: dashboardStats?.messages || "0", icon: MessageCircle, color: "#C5A059" }
   ];
-
-  // Recommendations and shortlisted profiles are now sourced from state
 
   const handleNavigate = (page: string) => {
     if (onNavigate) {
@@ -126,7 +117,6 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
 
   return (
     <div className="min-h-screen bg-[#F9F9F9]">
-      {/* Header */}
       <div className="bg-gradient-to-r from-[#8E001C] to-[#A60020] text-white">
         <div className="max-w-[1440px] mx-auto px-8 py-8">
           <div className="flex items-center justify-between">
@@ -185,7 +175,6 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
             </div>
           </div>
 
-          {/* Profile Completion */}
           <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>
@@ -211,7 +200,6 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="max-w-[1440px] mx-auto px-8 -mt-8 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {stats.map((stat, index) => (
@@ -250,12 +238,9 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-[1440px] mx-auto px-8 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Top Recommendations */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -341,60 +326,9 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
                 </div>
               </Card>
             </motion.div>
-
-            {/* Shortlisted Profiles */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Card className="p-8 bg-white border-[#C5A059]/20 shadow-md">
-                <h2
-                  className="mb-6"
-                  style={{ fontFamily: "'Playfair Display', serif", fontSize: '24px', fontWeight: 600, color: '#1A1A1A' }}
-                >
-                  Your Shortlisted Profiles
-                </h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {shortlisted.length > 0 ? shortlisted.map((profile) => (
-                    <div
-                      key={profile.id}
-                      className="group relative rounded-xl overflow-hidden cursor-pointer"
-                    >
-                      <ImageWithFallback
-                        src={profile.image}
-                        alt={profile.name}
-                        className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <h3
-                          style={{ fontFamily: "'Playfair Display', serif", fontSize: '16px', fontWeight: 600 }}
-                        >
-                          {profile.name}
-                        </h3>
-                        <p
-                          className="text-sm text-white/90"
-                          style={{ fontFamily: "'Inter', sans-serif" }}
-                        >
-                          {profile.age} yrs • {profile.profession}
-                        </p>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="col-span-2 text-center py-8 text-[#717182]">
-                      <Star className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                      <p>No shortlisted profiles yet.</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </motion.div>
           </div>
 
-          {/* Right Column - Activity & Tips */}
           <div className="space-y-8">
-            {/* New Related Matches (Replacing Recent Activity - WAIT, user wants Activity feed here) */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -436,78 +370,6 @@ export function DashboardPage({ onNavigate, onLogout }: DashboardPageProps) {
                       No recent activity.
                     </div>
                   )}
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Profile Tips */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Card className="p-6 bg-gradient-to-br from-[#8E001C] to-[#A60020] text-white border-0 shadow-md">
-                <TrendingUp className="w-10 h-10 mb-4 opacity-80" />
-                <h3
-                  className="mb-2"
-                  style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600 }}
-                >
-                  Boost Your Profile
-                </h3>
-                <p
-                  className="text-sm text-white/90 mb-4"
-                  style={{ fontFamily: "'Inter', sans-serif" }}
-                >
-                  Add more photos and complete your preferences to get 3x more matches!
-                </p>
-                <Button
-                  className="w-full bg-[#C5A059] hover:bg-[#B59049] text-[#1A1A1A]"
-                  style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
-                >
-                  Complete Profile
-                </Button>
-              </Card>
-            </motion.div>
-
-            {/* Quick Actions */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Card className="p-6 bg-white border-[#C5A059]/20 shadow-md">
-                <h2
-                  className="mb-4"
-                  style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 600, color: '#1A1A1A' }}
-                >
-                  Quick Actions
-                </h2>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start border-[#C5A059]/30 hover:border-[#C5A059] hover:bg-[#F9F9F9]"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
-                    onClick={() => handleNavigate('browse')}
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Browse Profiles
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start border-[#C5A059]/30 hover:border-[#C5A059] hover:bg-[#F9F9F9]"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Messages
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start border-[#C5A059]/30 hover:border-[#C5A059] hover:bg-[#F9F9F9]"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Schedule Meet
-                  </Button>
                 </div>
               </Card>
             </motion.div>

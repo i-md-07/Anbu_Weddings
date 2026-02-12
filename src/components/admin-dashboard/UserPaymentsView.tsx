@@ -29,6 +29,9 @@ export const UserPaymentsView: React.FC<UserPaymentsViewProps> = ({ onViewDetail
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
+    const [totalCollections, setTotalCollections] = useState(0);
+    const [paidUsersCount, setPaidUsersCount] = useState(0);
+    const [activeUsersCount, setActiveUsersCount] = useState(0);
 
     const loadStats = async () => {
         setLoading(true);
@@ -43,6 +46,9 @@ export const UserPaymentsView: React.FC<UserPaymentsViewProps> = ({ onViewDetail
             setUserStats(data.payments || []);
             setTotalCount(data.totalCount || 0);
             setTotalPages(data.totalPages || 0);
+            setTotalCollections(data.totalCollections || 0);
+            setPaidUsersCount(data.paidUsersCount || 0);
+            setActiveUsersCount(data.activeUsersCount || 0);
         } catch (error) {
             console.error("Failed to load user payments", error);
             toast.error("Failed to load payment records.");
@@ -68,10 +74,6 @@ export const UserPaymentsView: React.FC<UserPaymentsViewProps> = ({ onViewDetail
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Simplified stats calculation (in real world, these could come from backend too)
-    const totalPaid = userStats.reduce((acc, u) => acc + (u.TotalPaid || 0), 0);
-    const activeUsers = userStats.filter(u => u.UserStatus === 'Active').length;
-    const paidUsers = userStats.filter(u => (u.TotalPaid || 0) > 0).length;
 
     return (
         <div className="space-y-6">
@@ -98,7 +100,7 @@ export const UserPaymentsView: React.FC<UserPaymentsViewProps> = ({ onViewDetail
                 <Card className="p-4 bg-[#8E001C]/5 border-none">
                     <div className="text-xs font-semibold text-[#8E001C] uppercase tracking-wider mb-1">Total Collections</div>
                     <div className="text-2xl font-bold text-[#8E001C]">
-                        ₹{totalPaid.toLocaleString()}
+                        ₹{totalCollections.toLocaleString()}
                     </div>
                 </Card>
                 <Card className="p-4 bg-green-50 border-none">
@@ -107,11 +109,11 @@ export const UserPaymentsView: React.FC<UserPaymentsViewProps> = ({ onViewDetail
                 </Card>
                 <Card className="p-4 bg-blue-50 border-none">
                     <div className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-1">Active Members</div>
-                    <div className="text-2xl font-bold text-blue-700">{activeUsers}</div>
+                    <div className="text-2xl font-bold text-blue-700">{activeUsersCount}</div>
                 </Card>
                 <Card className="p-4 bg-yellow-50 border-none">
                     <div className="text-xs font-semibold text-yellow-700 uppercase tracking-wider mb-1">Paid Users</div>
-                    <div className="text-2xl font-bold text-yellow-700">{paidUsers}</div>
+                    <div className="text-2xl font-bold text-yellow-700">{paidUsersCount}</div>
                 </Card>
             </div>
 

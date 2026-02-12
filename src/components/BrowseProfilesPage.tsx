@@ -1,11 +1,19 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { Heart, MapPin, Filter, SlidersHorizontal, Crown, Sparkles, Wifi, Camera, RotateCcw, Loader2 } from "lucide-react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import {
+  Heart,
+  MapPin,
+  RotateCcw,
+  Crown,
+  Sparkles,
+  Loader2,
+  Filter,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { MultiSelectFilter } from "./ui/multi-select-filter";
+import axios from "axios";
 import { Slider } from "./ui/slider";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { fetchBrowseProfiles, sendInterest } from "../services/api";
+import { fetchBrowseProfiles, sendInterest } from "@/services/api";
 import { toast } from "sonner";
 
 interface BrowseProfilesPageProps {
@@ -17,12 +25,10 @@ function ProfileCard({
   profile,
   onViewProfile,
   onConnect,
-  index = 0
 }: {
   profile: any;
   onViewProfile: (id: number) => void;
   onConnect: (id: number) => void;
-  index?: number;
 }) {
   return (
     <div
@@ -95,18 +101,46 @@ function ProfileCard({
   );
 }
 
-export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps) {
+export default function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps) {
   const [ageRange, setAgeRange] = useState([25, 35]);
-  const [heightRange, setHeightRange] = useState([150, 180]);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [activeQuickFilters, setActiveQuickFilters] = useState<string[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [religion, setReligion] = useState("any");
-  const [search, setSearch] = useState("");
+
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
+
+  // Advanced Filters State
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedReligions, setSelectedReligions] = useState<string[]>([]);
+  const [selectedCastes, setSelectedCastes] = useState<string[]>([]);
+  const [selectedProfessions, setSelectedProfessions] = useState<string[]>([]);
+  const [selectedFatherProfessions, setSelectedFatherProfessions] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+
+  // Unique Values for Filters
+  const [uniqueStates, setUniqueStates] = useState<string[]>([]);
+  const [uniqueReligions, setUniqueReligions] = useState<string[]>([]);
+  const [uniqueCastes, setUniqueCastes] = useState<string[]>([]);
+  const [uniqueProfessions, setUniqueProfessions] = useState<string[]>([]);
+  const [uniqueFatherProfessions, setUniqueFatherProfessions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadUniqueValues = async () => {
+      try {
+        const res = await axios.get("/api/admin/users/unique-values");
+        setUniqueStates(res.data.states || []);
+        setUniqueReligions(res.data.religions || []);
+        setUniqueCastes(res.data.castes || []);
+        setUniqueProfessions(res.data.personProfessions || []);
+        setUniqueFatherProfessions(res.data.fatherProfessions || []);
+      } catch (err) {
+        console.error("Failed to load unique values", err);
+      }
+    };
+    loadUniqueValues();
+  }, []);
 
   const lastProfileElementRef = useCallback((node: any) => {
     if (loading) return;
@@ -129,10 +163,15 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
       const params = {
         ageMin: ageRange[0],
         ageMax: ageRange[1],
-        religion: religion !== 'any' ? religion : undefined,
+        states: selectedStates.join(','),
+        religions: selectedReligions.join(','),
+        castes: selectedCastes.join(','),
+        professions: selectedProfessions.join(','),
+        fatherProfessions: selectedFatherProfessions.join(','),
+        statuses: selectedStatuses.join(','),
         search: search || undefined,
         page: currentPage,
-        pageSize: 10
+        pageSize: 10,
       };
 
       const data = await fetchBrowseProfiles(params, token);
@@ -162,7 +201,7 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
 
   useEffect(() => {
     loadProfiles(true);
-  }, [ageRange, religion, activeQuickFilters]); // Trigger on filter change
+  }, [ageRange, selectedStates, selectedReligions, selectedCastes, selectedProfessions, selectedFatherProfessions, selectedStatuses]); // Trigger on filter change
 
   const handleViewProfile = (id: number) => {
     if (onProfileSelect) {
@@ -181,22 +220,21 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
     }
   };
 
-  const toggleQuickFilter = (filter: string) => {
-    setActiveQuickFilters(prev =>
-      prev.includes(filter) ? prev.filter(f => f !== filter) : [...prev, filter]
-    );
-  };
 
   const resetFilters = () => {
     setAgeRange([25, 35]);
-    setHeightRange([150, 180]);
-    setActiveQuickFilters([]);
+    setSelectedStates([]);
+    setSelectedReligions([]);
+    setSelectedCastes([]);
+    setSelectedProfessions([]);
+    setSelectedFatherProfessions([]);
+    setSelectedStatuses([]);
+    setSearch("");
   };
 
   // Filter Panel Component
   const FilterPanel = () => (
     <div className="space-y-6">
-      {/* Age Range - Dual Handle */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-gray-900">Age Range</label>
@@ -212,53 +250,62 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
         />
       </div>
 
-      {/* Height Range - Dual Handle */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-semibold text-gray-900">Height</label>
-          <span className="text-sm text-[#8E001C] font-medium">{heightRange[0]} - {heightRange[1]} cm</span>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-900">Location</label>
+          <MultiSelectFilter
+            title="States"
+            options={uniqueStates}
+            selectedValues={selectedStates}
+            onChange={setSelectedStates}
+          />
         </div>
-        <Slider
-          value={heightRange}
-          onValueChange={setHeightRange}
-          min={140}
-          max={200}
-          step={1}
-          className="[&_[role=slider]]:bg-[#8E001C] [&_[role=slider]]:border-[#8E001C] [&_[role=slider]]:shadow-md"
-        />
-      </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-900">Religion</label>
-        <Select value={religion} onValueChange={setReligion}>
-          <SelectTrigger className="bg-white border-gray-200 rounded-lg h-11 focus:border-[#8E001C] focus:ring-[#8E001C]/10">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="any" className="rounded-lg">Any Religion</SelectItem>
-            <SelectItem value="Hindu" className="rounded-lg">Hindu</SelectItem>
-            <SelectItem value="Muslim" className="rounded-lg">Muslim</SelectItem>
-            <SelectItem value="Sikh" className="rounded-lg">Sikh</SelectItem>
-            <SelectItem value="Christian" className="rounded-lg">Christian</SelectItem>
-            <SelectItem value="Jain" className="rounded-lg">Jain</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-900">Background</label>
+          <div className="flex flex-col gap-2">
+            <MultiSelectFilter
+              title="Religions"
+              options={uniqueReligions}
+              selectedValues={selectedReligions}
+              onChange={setSelectedReligions}
+            />
+            <MultiSelectFilter
+              title="Castes"
+              options={uniqueCastes}
+              selectedValues={selectedCastes}
+              onChange={setSelectedCastes}
+            />
+          </div>
+        </div>
 
-      {/* Education - Modern Select */}
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-900">Education</label>
-        <Select defaultValue="any">
-          <SelectTrigger className="bg-white border-gray-200 rounded-lg h-11 focus:border-[#8E001C] focus:ring-[#8E001C]/10">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="any" className="rounded-lg">Any Education</SelectItem>
-            <SelectItem value="postgrad" className="rounded-lg">Post Graduate</SelectItem>
-            <SelectItem value="grad" className="rounded-lg">Graduate</SelectItem>
-            <SelectItem value="diploma" className="rounded-lg">Diploma</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-900">Profession</label>
+          <div className="flex flex-col gap-2">
+            <MultiSelectFilter
+              title="Self Profession"
+              options={uniqueProfessions}
+              selectedValues={selectedProfessions}
+              onChange={setSelectedProfessions}
+            />
+            <MultiSelectFilter
+              title="Family Profession"
+              options={uniqueFatherProfessions}
+              selectedValues={selectedFatherProfessions}
+              onChange={setSelectedFatherProfessions}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-900">Status</label>
+          <MultiSelectFilter
+            title="Profile Status"
+            options={["Active", "Expired"]}
+            selectedValues={selectedStatuses}
+            onChange={setSelectedStatuses}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -274,7 +321,6 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
         </div>
       </div>
 
-      {/* Reset Filters */}
       <button
         onClick={resetFilters}
         className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#8E001C] transition-colors pt-2"
@@ -285,86 +331,16 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
     </div>
   );
 
-  // Quick Filter Chip Component
-  const QuickFilterChip = ({ label, icon: Icon, value }: { label: string; icon: any; value: string }) => {
-    const isActive = activeQuickFilters.includes(value);
-    return (
-      <button
-        onClick={() => toggleQuickFilter(value)}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${isActive
-          ? 'bg-[#8E001C] text-white shadow-md'
-          : 'bg-white text-gray-600 border border-gray-200 hover:border-[#8E001C]/50 hover:text-[#8E001C]'
-          }`}
-      >
-        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
-        {label}
-      </button>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Clean White Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8">
-          {/* Main Header Row */}
           <div className="flex items-center justify-between py-4">
-            {/* Title */}
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-serif">
-                Discover Matches
-              </h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                <span className="text-[#8E001C] font-semibold">{profiles.length}</span> profiles found
-              </p>
-            </div>
-
-            {/* Right Side Actions */}
-            <div className="flex items-center gap-3">
-              {/* Mobile Filter Button */}
-              <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-                <SheetTrigger asChild className="lg:hidden">
-                  <Button variant="outline" size="sm" className="border-gray-200 h-9">
-                    <SlidersHorizontal className="w-4 h-4 mr-1.5" />
-                    Filters
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80 p-6">
-                  <SheetHeader>
-                    <SheetTitle className="text-xl font-serif text-[#8E001C]">
-                      Filter Profiles
-                    </SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <FilterPanel />
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              {/* Sort Dropdown */}
-              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-200">
-                <span className="text-sm text-gray-500 hidden sm:block">Sort by</span>
-                <Select defaultValue="match">
-                  <SelectTrigger className="w-28 border-0 bg-transparent p-0 h-auto text-sm font-medium focus:ring-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="match" className="rounded-lg">Relevance</SelectItem>
-                    <SelectItem value="recent" className="rounded-lg">Newest</SelectItem>
-                    <SelectItem value="age-asc" className="rounded-lg">Age ↑</SelectItem>
-                    <SelectItem value="age-desc" className="rounded-lg">Age ↓</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Filter Chips Row */}
-          <div className="flex items-center gap-2 pb-4 overflow-x-auto scrollbar-hide">
-            <QuickFilterChip label="Online Now" icon={Wifi} value="online" />
-            <QuickFilterChip label="With Photo" icon={Camera} value="photo" />
-            <QuickFilterChip label="Premium" icon={Crown} value="premium" />
-            <QuickFilterChip label="New Joiners" icon={Sparkles} value="new" />
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 font-serif">
+              Browse Profiles
+            </h1>
           </div>
         </div>
       </div>
@@ -391,31 +367,37 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
                 <p className="text-gray-500">Finding your matches...</p>
               </div>
             ) : profiles.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
-                {profiles.map((profile, index) => {
-                  if (profiles.length === index + 1) {
-                    return (
-                      <div ref={lastProfileElementRef} key={`${profile.id}-${index}`}>
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-6">
+                  {profiles.map((profile, index) => {
+                    if (profiles.length === index + 1) {
+                      return (
+                        <div ref={lastProfileElementRef} key={`${profile.id}-${index}`}>
+                          <ProfileCard
+                            profile={profile}
+                            onViewProfile={handleViewProfile}
+                            onConnect={handleConnect}
+                          />
+                        </div>
+                      );
+                    } else {
+                      return (
                         <ProfileCard
+                          key={`${profile.id}-${index}`}
                           profile={profile}
                           onViewProfile={handleViewProfile}
                           onConnect={handleConnect}
-                          index={index}
                         />
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <ProfileCard
-                        key={`${profile.id}-${index}`}
-                        profile={profile}
-                        onViewProfile={handleViewProfile}
-                        onConnect={handleConnect}
-                        index={index}
-                      />
-                    );
-                  }
-                })}
+                      );
+                    }
+                  })}
+                </div>
+
+                {loading && profiles.length > 0 && (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-[#8E001C] animate-spin" />
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
@@ -427,8 +409,6 @@ export function BrowseProfilesPage({ onProfileSelect }: BrowseProfilesPageProps)
                 </Button>
               </div>
             )}
-
-
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ import { Toaster } from "./components/ui/sonner";
 import { Footer } from "./components/Footer";
 import { LoginPage } from "./components/LoginPage";
 import { SignupPage } from "./components/SignupPage";
-import { BrowseProfilesPage } from "./components/BrowseProfilesPage";
+import BrowseProfilesPage from "./components/BrowseProfilesPage";
 import { ProfileViewPage } from "./components/ProfileViewPage";
 import { DashboardPage } from "./components/DashboardPage";
 import { AdminDashboard } from "./components/AdminDashboard";
