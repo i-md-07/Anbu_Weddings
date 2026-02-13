@@ -8,8 +8,8 @@ const config = {
   port: Number(process.env.DB_PORT), // 50000
   database: process.env.DB_DATABASE,
   options: {
-    encrypt: false,
-    trustServerCertificate: true,
+    encrypt: process.env.DB_ENCRYPT === "true",
+    trustServerCertificate: process.env.DB_TRUST_SERVER_CERT === "true",
   },
   pool: {
     max: 10,
