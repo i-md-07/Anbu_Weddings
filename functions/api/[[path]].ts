@@ -3,15 +3,22 @@ import { handle } from 'hono/cloudflare-pages'
 
 const app = new Hono().basePath('/api')
 
-// Mock environment for existing route logic if needed
-// or we can import the routes directly if they are refactored to be framework-agnostic.
-// For now, let's create a basic handler and then bridge to the existing routes.
+app.all('*', async (c) => {
+  // Replace with your Render URL or set it in Cloudflare Dashboard
+  const backendUrl = 'https://anbu-weddings.onrender.com'
+  const url = new URL(c.req.url)
+  const proxyUrl = `${backendUrl}/api${url.pathname.replace('/api', '')}${url.search}`
 
-app.get('/hello', (c) => {
-    return c.json({ message: 'Hello from Cloudflare Functions!' })
+  // For POST/PUT/PATCH, we need to pass the body
+  const body = c.req.method !== 'GET' ? await c.req.raw.blob() : undefined;
+
+  const response = await fetch(proxyUrl, {
+    method: c.req.method,
+    headers: c.req.header(),
+    body: body,
+  })
+
+  return new Response(response.body, response)
 })
-
-// Bridge to existing routes will go here
-// We'll need to adapt Express req/res to Hono c.req/c.res
 
 export const onRequest = handle(app)
