@@ -1,7 +1,7 @@
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { loginUser } from "../services/api";
 import { toast } from "sonner";
 
@@ -20,29 +20,46 @@ export function HeroSection({ onNavigate, isLoggedIn, onLogin }: HeroSectionProp
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const images = [img1, img2, img3, img4];
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [images.length]);
+
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center pb-10">
+    <div className="w-full h-full bg-gray-50 flex items-center justify-center">
 
       {/* LIMIT CONTAINER TO EXACT SCREEN HEIGHT */}
       <div className="w-full max-w-7xl h-full grid grid-cols-1 md:grid-cols-2 items-center">
 
-        {/* LEFT — IMAGE FRAME GRID */}
-        <motion.div
-          initial={{ opacity: 0, x: -40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="grid grid-cols-2 gap-4 w-full max-w-lg mx-auto p-4"
-        >
-          {images.map((img, i) => (
-            <img
-              key={i}
-              src={img}
-              className="w-full h-64 object-cover rounded-2xl shadow-lg hover:scale-105 transition-transform duration-500"
-            />
-          ))}
-        </motion.div>
+        {/* LEFT — SQUARE SLIDESHOW */}
+        <div className="w-full max-w-md mx-auto p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="relative aspect-square overflow-hidden rounded-3xl shadow-2xl border-4 border-white"
+          >
+            <AnimatePresence initial={false}>
+              <motion.img
+                key={currentIndex}
+                src={images[currentIndex]}
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '-100%', opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </AnimatePresence>
+
+            {/* Minimal Overlay Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+          </motion.div>
+        </div>
 
         {/* RIGHT — LOGIN BOX */}
         <motion.div

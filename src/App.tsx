@@ -32,9 +32,6 @@ export default function App() {
     const token = localStorage.getItem('token');
     if (token) {
       setIsLoggedIn(true);
-      if (location.pathname === '/') {
-        navigate('/dashboard');
-      }
     }
   }, []);
 
@@ -94,9 +91,9 @@ export default function App() {
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={
-            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full min-h-screen">
+            <motion.div variants={variants} initial="initial" animate="animate" exit="exit" className="w-full h-screen flex flex-col overflow-hidden">
               <Navbar onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-              <main>
+              <main className="flex-1 overflow-hidden">
                 <HeroSection onNavigate={handleNavigate} isLoggedIn={isLoggedIn} onLogin={handleLogin} />
               </main>
             </motion.div>

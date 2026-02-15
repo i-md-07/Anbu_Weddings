@@ -33,7 +33,7 @@ export function Navbar({ onNavigate, isLoggedIn = false, onLogout }: NavbarProps
             const data = await fetchCurrentUser(token);
             setUser({
               name: data.username,
-              email: data.email,              userType: data.UserType || 0,              avatar: data.photo ? `http://localhost:5000/${data.photo}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
+              email: data.email, userType: data.UserType || 0, avatar: data.photo ? `http://localhost:5000/${data.photo}` : "https://images.unsplash.com/photo-1649433658557-54cf58577c68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
               initials: data.username ? data.username.substring(0, 2).toUpperCase() : "US"
             });
           } catch (error) {
@@ -119,7 +119,7 @@ export function Navbar({ onNavigate, isLoggedIn = false, onLogout }: NavbarProps
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />                  {displayUser.userType === 1 && (
-                    <DropdownMenuItem onClick={() => onNavigate("admin") }>
+                    <DropdownMenuItem onClick={() => onNavigate("admin")}>
                       <Users className="mr-2 h-4 w-4" />
                       Admin
                     </DropdownMenuItem>
